@@ -4,7 +4,7 @@ import {
     DragOverlay, 
     useSensor, 
     useSensors, 
-    PointerSensor, // 專門處理滑鼠 + 觸控
+    PointerSensor,
     TouchSensor,
     DragStartEvent,
     DragEndEvent,
@@ -33,39 +33,61 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   onDiscard,
   isFullscreen
 }) => {
-  // State
-  const [activeId, setActiveId] = useState<string | null>(null); // 正在拖曳的 ID
-  const [overId, setOverId] = useState<string | null>(null);     // 目前懸停在誰上面
-  const [activeRune, setActiveRune] = useState<Rune | null>(null); // 正在拖曳的符文資料 (給 Overlay 用)
-  
-  // 外部刪除區高亮
-  const [activeVoidId, setActiveVoidId] = useState<string | null>(null);
+  // --- State ---
+  const [activeId, setActiveId] = useState<string | null>(null); // 拖曳中的 ID
+  const [overId, setOverId] = useState<string | null>(null);     // 懸停的 ID
+  const [activeRune, setActiveRune] = useState<Rune | null>(null); // 拖曳中的資料
+  const [activeVoidId, setActiveVoidId] = useState<string | null>(null); // 刪除區高亮
 
-  // 設定感應器：PointerSensor 可以同時處理滑鼠和觸控，是目前推薦的做法
-  // activationConstraint: { distance: 5 } 代表手指移動 5px 才算拖曳，避免誤觸點擊
+  // [回歸] 點選高亮的 State
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+
+  // --- Sensors ---
   const sensors = useSensors(
     useSensor(PointerSensor, {
         activationConstraint: {
-            distance: 5, 
+            distance: 5, // 移動超過 5px 才算拖曳，小於 5px 算點擊
         },
     }),
     useSensor(TouchSensor, {
         activationConstraint: {
-            delay: 50, // 稍微延遲一點點，手感比較穩
+            delay: 50,
             tolerance: 5,
         },
     })
   );
 
-  // ---------------- Helper: Auto-Detect Edge ----------------
-  // 檢查是否為鄰近的格子 (互動判定)
+  // --- Logic: Click Selection ---
+  
+  // [回歸] 點擊處理
+  const handleClick = (id: number) => {
+      if (isProcessing) return;
+      // 如果點擊已選取的 -> 取消；否則 -> 選取
+      if (selectedId === id) {
+          setSelectedId(null);
+      } else {
+          setSelectedId(id);
+      }
+  };
+
+  // [回歸] 監聽 grid，如果選中的符文消失了(被消除)，自動取消選取
+  useEffect(() => {
+    if (selectedId !== null && !grid[selectedId]?.rune) {
+        setSelectedId(null);
+    }
+  }, [grid, selectedId]);
+
+  // 取得當前選中的符文資料 (用於計算連線提示)
+  const selectedRune = selectedId !== null ? grid[selectedId]?.rune : null;
+
+  // --- Logic: Drag & Drop Helpers ---
+
   const isAdjacent = (id1: number, id2: number) => {
       const x1 = id1 % GRID_SIZE; const y1 = Math.floor(id1 / GRID_SIZE);
       const x2 = id2 % GRID_SIZE; const y2 = Math.floor(id2 / GRID_SIZE);
       return Math.abs(x1 - x2) + Math.abs(y1 - y2) === 1;
   };
 
-  // 檢查是否可丟棄 (邊緣判定)
   const getAutoDiscardZone = (dragId: number): string | null => {
     const dX = dragId % GRID_SIZE;
     const dY = Math.floor(dragId / GRID_SIZE);
@@ -76,23 +98,22 @@ export const GameBoard: React.FC<GameBoardProps> = ({
     return null;
   };
 
-  // ---------------- Event Handlers ----------------
+  // --- Event Handlers ---
 
   const handleDragStart = (event: DragStartEvent) => {
       if (isProcessing) return;
-      
       const { active } = event;
-      const runeData = active.data.current as Rune; // 我們會在 DraggableRune 傳入 rune
-      
+      const runeData = active.data.current as Rune;
       setActiveId(active.id as string);
       setActiveRune(runeData);
+      // 開始拖曳時，通常建議清除「點選」狀態，避免混淆
+      setSelectedId(null);
   };
 
   const handleDragOver = (event: DragOverEvent) => {
       const { active, over } = event;
       
       if (!over) {
-        // 如果拖到外面去了，檢查是否符合全域丟棄條件 (Global Discard)
         const dragIdNum = parseInt(active.id as string);
         const targetZone = getAutoDiscardZone(dragIdNum);
         if (targetZone) {
@@ -106,26 +127,22 @@ export const GameBoard: React.FC<GameBoardProps> = ({
 
       const overIdString = over.id as string;
       
-      // 1. 如果懸停在外部插槽 (VoidSlot)
+      // Void Slots Logic
       if (overIdString.startsWith('void-')) {
           const zoneId = overIdString.replace('void-', '');
-          // 檢查是否符合該插槽的規則 (例如 top-1 只能接收第一排)
-          // 這裡我們簡化邏輯：只要 getAutoDiscardZone 算出來是對的，就亮燈
           const dragIdNum = parseInt(active.id as string);
           const correctZone = getAutoDiscardZone(dragIdNum);
           
           if (correctZone === zoneId) {
                setActiveVoidId(zoneId);
           }
-          setOverId(null); // 避免格子亮起
+          setOverId(null);
           return;
       }
 
-      // 2. 如果懸停在一般格子 (Cell)
-      // 先清除外部高亮
+      // Grid Cells Logic
       if (activeVoidId !== null) setActiveVoidId(null);
 
-      // 只有鄰近格子才視為有效懸停
       const dragIdNum = parseInt(active.id as string);
       const overIdNum = parseInt(overIdString);
       
@@ -140,44 +157,35 @@ export const GameBoard: React.FC<GameBoardProps> = ({
       const { active, over } = event;
       const dragIdNum = parseInt(active.id as string);
 
-      // 1. 處理丟棄 (有亮紅燈)
       if (activeVoidId) {
           onDiscard(dragIdNum);
-      } 
-      // 2. 處理交換 (有懸停在有效格子上)
-      else if (over && !over.id.toString().startsWith('void-')) {
+      } else if (over && !over.id.toString().startsWith('void-')) {
           const overIdNum = parseInt(over.id as string);
           if (isAdjacent(dragIdNum, overIdNum)) {
               onInteraction(dragIdNum, overIdNum);
           }
       }
 
-      // 重置狀態
       setActiveId(null);
       setOverId(null);
       setActiveRune(null);
       setActiveVoidId(null);
   };
 
-  // Drop 動畫設定 (讓它放手時不要閃爍)
   const dropAnimation: DropAnimation = {
     sideEffects: defaultDropAnimationSideEffects({
       styles: {
-        active: {
-          opacity: '0.4',
-        },
+        active: { opacity: '0.4' },
       },
     }),
   };
 
-  // ---------------- Render Helpers ----------------
+  // --- Render ---
 
-  // 渲染外部插槽
   const VoidSlot = ({ id, isCorner = false }: { id: string, isCorner?: boolean }) => {
       if (isCorner) return <div className="invisible aspect-square" />;
-
       const isActive = activeVoidId === id;
-      const droppableId = `void-${id}`; // 給 dnd-kit 用的 ID
+      const droppableId = `void-${id}`;
 
       return (
           <DroppableCell 
@@ -202,7 +210,6 @@ export const GameBoard: React.FC<GameBoardProps> = ({
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
-        // autoScroll={false} // 視情況開啟或關閉自動捲動
     >
         <div className={`relative flex items-center justify-center ${isFullscreen ? 'h-full w-full' : ''}`}>
         
@@ -225,31 +232,32 @@ export const GameBoard: React.FC<GameBoardProps> = ({
                 <React.Fragment key={`row-${rowIdx}`}>
                     <VoidSlot id={`left-${rowIdx}`} />
 
-                    {/* Main Grid Cells */}
                     {Array.from({ length: GRID_SIZE }).map((_, colIdx) => {
                         const cellIndex = rowIdx * GRID_SIZE + colIdx;
                         const cell = grid[cellIndex];
-                        
-                        // 顯示邏輯：處理交換預覽
-                        // 如果我是被拖曳的(dragged)，且懸停在別人(over)上面 -> 我顯示別人的符文
-                        // 如果我是別人(over)，且被拖曳的(dragged)懸停在我上面 -> 我顯示被拖曳的符文
                         
                         let displayRune = cell.rune;
                         const isActiveSource = activeId === cell.id.toString();
                         const isOverTarget = overId === cell.id.toString();
 
+                        // 交換預覽邏輯
                         if (activeId && overId && !overId.startsWith('void-')) {
                             const activeIdx = parseInt(activeId);
                             const overIdx = parseInt(overId);
-                            
-                            if (cell.id === activeIdx) {
-                                displayRune = grid[overIdx]?.rune; // 我現在顯示對方的
-                            } else if (cell.id === overIdx) {
-                                displayRune = grid[activeIdx]?.rune; // 對方顯示我的
-                            }
+                            if (cell.id === activeIdx) displayRune = grid[overIdx]?.rune;
+                            else if (cell.id === overIdx) displayRune = grid[activeIdx]?.rune;
                         }
                         
                         const isAboutToDelete = isActiveSource && activeVoidId !== null;
+
+                        // [回歸] 計算點選高亮
+                        const isSelected = selectedId === cell.id;
+                        
+                        // [回歸] 計算連線提示高亮
+                        const isMatch = selectedRune && displayRune 
+                            && displayRune.type === selectedRune.type 
+                            && displayRune.level === selectedRune.level
+                            && cell.id !== selectedId;
 
                         return (
                             <DroppableCell 
@@ -267,15 +275,19 @@ export const GameBoard: React.FC<GameBoardProps> = ({
                                 {displayRune && (
                                     <DraggableRune 
                                         id={cell.id.toString()} 
-                                        data={displayRune} // 把符文資料傳給 Draggable，方便 DragOverlay 抓取
+                                        data={displayRune}
                                         disabled={isProcessing}
                                         className="w-full h-full"
+                                        // [回歸] 傳遞點擊事件
+                                        onClick={() => handleClick(cell.id)}
                                     >
                                          <RunePiece 
                                             rune={displayRune} 
                                             cellId={cell.id}
                                             isAboutToDelete={isAboutToDelete}
-                                            // isSelected 在這裡不需要傳了，由 DraggableRune 控制透明度
+                                            // [回歸] 傳遞高亮狀態
+                                            isSelected={isSelected}
+                                            isMatchHighlighted={!!isMatch}
                                          />
                                     </DraggableRune>
                                 )}
@@ -293,17 +305,14 @@ export const GameBoard: React.FC<GameBoardProps> = ({
             ))}
         </div>
 
-        {/* Drag Overlay: 這是 dnd-kit 的精髓 
-            它是一個獨立的層，會跟隨手指移動，效能極佳且不受 CSS layout 影響
-        */}
         <DragOverlay dropAnimation={dropAnimation}>
             {activeRune ? (
                 <div className="w-full h-full flex items-center justify-center">
-                    <div className="w-[80px] h-[80px]"> {/* 固定大小，避免因容器縮放變形 */}
+                    <div className="w-[80px] h-[80px]">
                         <RunePiece 
                             rune={activeRune} 
                             cellId={-1} 
-                            isSelected={true} // 讓它顯示 Lv 標籤
+                            isSelected={true} // 拖曳時顯示詳細等級
                         />
                     </div>
                 </div>

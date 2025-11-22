@@ -32,7 +32,7 @@ export const RunePiece: React.FC<RunePieceProps> = ({
   // 1. 解決顏色殘留：
   // 如果沒有任何特殊狀態，強制回歸正常顯示。
   // 這裡我們根據狀態決定 class，而不依賴之前的狀態殘留
-  const baseClass = "relative flex items-center justify-center";
+  const baseClass = `relative flex items-center justify-center ${isSelected ? 'z-[100]' : ''}`;
   const highlightClass = isMatchHighlighted 
     ? `ring-4 ring-white scale-110 z-20 brightness-150 contrast-125 drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]` 
     : '';
