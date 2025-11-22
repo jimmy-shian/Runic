@@ -81,7 +81,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
 
     const now = Date.now();
     // 如果距離上次更新不到 50 毫秒，就跳過這次計算，直接 return
-    if (now - lastUpdateRef.current < 50) {
+    if (now - lastUpdateRef.current < 10) {
         return; 
     }
     lastUpdateRef.current = now;
@@ -117,11 +117,11 @@ export const GameBoard: React.FC<GameBoardProps> = ({
     e.preventDefault();
     
     const now = Date.now();
-    if (now - lastUpdateRef.current < 50) {
+    if (now - lastUpdateRef.current < 10) {
         return; 
     }
     lastUpdateRef.current = now;
-    
+
     if (isHoveringGridRef.current) return;
     if (draggedId === null) return;
 

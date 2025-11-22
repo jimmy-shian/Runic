@@ -3,31 +3,38 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 
 import { polyfill } from "mobile-drag-drop";
-// 引入這個可以修正拖曳影像在捲動頁面時的錯位問題
 import { scrollBehaviourDragImageTranslateOverride } from "mobile-drag-drop/scroll-behaviour";
 import "mobile-drag-drop/default.css";
 
-// 啟動 Polyfill
 polyfill({
-    // 讓拖曳的殘影在手指中心 (手感較好)
+    // 1. 讓拖曳影像跟隨手指中心
     dragImageCenterOnTouch: true,
     
-    // 允許在 iOS 上也能觸發
+    // 2. 強制套用 (不管瀏覽器是否宣稱支援)
     forceApply: true, 
     
-    // ▼▼▼ 【關鍵修正】 ▼▼▼
-    // 預設是 500ms (要長按)，改成 50ms 讓它幾乎是「隨點隨拖」
-    holdToDrag: 50, 
+    // 3. 【極限設定】改成 1 或 2 毫秒
+    // 這代表手指一碰到螢幕，瀏覽器只有 2ms 的時間猶豫，之後立刻進入拖曳模式
+    holdToDrag: 2, 
     
-    // 修正拖曳影像的位置計算
-    dragImageTranslateOverride: scrollBehaviourDragImageTranslateOverride
+    // 4. 修正影像位置
+    dragImageTranslateOverride: scrollBehaviourDragImageTranslateOverride,
+
+    // 5. 【新增】強制覆寫預設行為
+    // 當 Polyfill 偵測到拖曳意圖時，直接告訴瀏覽器：「閉嘴，這是拖曳，不要捲動」
+    defaultActionOverride: (e) => {
+        e.preventDefault(); 
+    }
 });
 
-// 解決 iOS Safari 的捲動干擾問題
-// 注意：如果您的 CSS 已經加了 touch-none，這裡其實只是雙重保險
-window.addEventListener( 'touchmove', function(e) {
-    // 這裡留空即可，mobile-drag-drop 會處理大部份邏輯
-}, {passive: false});
+// 6. 暴力禁止全域的觸控捲動 (針對 iOS Safari 特別有效)
+// 因為您的遊戲是全螢幕，不需要網頁捲動，這樣寫最保險
+window.addEventListener('touchmove', function(e) {
+    // 如果事件是可以取消的，就取消它 (防止捲動回彈)
+    if (e.cancelable) {
+        e.preventDefault();
+    }
+}, { passive: false }); // passive: false 是關鍵，讓 preventDefault 生效
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -36,5 +43,6 @@ if (!rootElement) {
 
 const root = ReactDOM.createRoot(rootElement);
 root.render(
+  // 記得移除 StrictMode，它會導致手機開發模式下的拖曳閃爍
   <App />
 );
