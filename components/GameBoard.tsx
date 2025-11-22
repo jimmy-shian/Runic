@@ -35,6 +35,9 @@ export const GameBoard: React.FC<GameBoardProps> = ({
 
   const selectedRune = selectedId !== null ? grid[selectedId]?.rune : null;
 
+  // 1. 新增一個 Ref 來記錄上次更新時間
+  const lastUpdateRef = useRef(0);
+
   // ---------------- Helper: Auto-Detect Edge ----------------
   const getAutoDiscardZone = (dragId: number): string | null => {
     const dX = dragId % GRID_SIZE;
@@ -75,7 +78,14 @@ export const GameBoard: React.FC<GameBoardProps> = ({
     isHoveringGridRef.current = true;
 
     if (isProcessing || draggedId === null) return;
-    
+
+    const now = Date.now();
+    // 如果距離上次更新不到 50 毫秒，就跳過這次計算，直接 return
+    if (now - lastUpdateRef.current < 50) {
+        return; 
+    }
+    lastUpdateRef.current = now;
+
     if (activeVoidId !== null) setActiveVoidId(null);
 
     const fX = draggedId % GRID_SIZE;
@@ -105,6 +115,12 @@ export const GameBoard: React.FC<GameBoardProps> = ({
 
   const handleContainerDragOver = (e: React.DragEvent) => {
     e.preventDefault();
+    
+    const now = Date.now();
+    if (now - lastUpdateRef.current < 50) {
+        return; 
+    }
+    lastUpdateRef.current = now;
     
     if (isHoveringGridRef.current) return;
     if (draggedId === null) return;
