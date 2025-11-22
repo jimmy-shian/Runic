@@ -181,7 +181,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
         className="grid gap-1.5 p-4 rounded-2xl bg-slate-900 shadow-2xl transition-colors duration-300 touch-none" 
         style={{
             gridTemplateColumns: `repeat(${GRID_SIZE + 2}, minmax(0, 1fr))`,
-            width: isFullscreen ? 'min(95vh, 95vw)' : 'min(65vh, 65vw)',
+            width: isFullscreen ? 'min(100vh, 100vw)' : 'min(95vh, 95vw)',
             maxWidth: isFullscreen ? 'none' : 'min(90vh, 1800px)',
             backgroundColor: activeVoidId ? 'rgba(60, 20, 20, 0.95)' : undefined 
         }}
