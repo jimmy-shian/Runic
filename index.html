@@ -2,10 +2,25 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Runic Synthesis</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+      /* index.css */
+      /* 強制所有元素都不准觸發瀏覽器的預設觸控行為（捲動、縮放） */
+      * {
+        touch-action: none !important;
+        -webkit-touch-callout: none !important; /* 禁止 iOS 長按跳出選單 */
+        -webkit-user-select: none !important;   /* 禁止 iOS 選取文字 */
+        user-select: none !important;
+      }
+
+      /* 但允許輸入框等特定元素可以操作 (如果有 Input 的話，目前你的遊戲沒有) */
+      input, textarea {
+        touch-action: auto !important;
+        user-select: text !important;
+      }
+      
       body {
         background-color: #0f172a;
         color: #e2e8f0;
