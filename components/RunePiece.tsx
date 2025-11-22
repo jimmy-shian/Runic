@@ -104,7 +104,7 @@ export const RunePiece: React.FC<RunePieceProps> = ({
   if (isLv1) {
     return (
       <motion.div {...motionProps}>
-        <div className={`${baseClass} w-[85%] h-[85%] ${highlightClass}`}>
+        <div className={`${baseClass} w-[90%] h-[90%] ${highlightClass}`}>
             <div className={`absolute inset-0 ${typeData.color.replace('text-', 'bg-')}/20 blur-md rounded-full transform scale-75`} />
             <Icon className={`w-full h-full ${typeData.color} drop-shadow-md filter saturate-150`} strokeWidth={2.5} fill="currentColor" fillOpacity={0.15} />
             {selectionOverlay}
@@ -118,7 +118,7 @@ export const RunePiece: React.FC<RunePieceProps> = ({
   if (isLv2) {
     return (
       <motion.div {...motionProps}>
-        <div className={`${baseClass} w-[80%] h-[80%] rounded-full bg-gradient-to-br ${typeData.gradient} border-2 border-white/30 shadow-lg ${highlightClass}`}>
+        <div className={`${baseClass} w-[90%] h-[90%] rounded-full bg-gradient-to-br ${typeData.gradient} border-2 border-white/30 shadow-lg ${highlightClass}`}>
             <div className="absolute inset-0 rounded-full bg-white/10" />
             <Icon className="text-white w-1/2 h-1/2 drop-shadow-md" strokeWidth={2.5} />
             {selectionOverlay}
@@ -132,7 +132,7 @@ export const RunePiece: React.FC<RunePieceProps> = ({
   if (isLv3) {
     return (
       <motion.div {...motionProps}>
-        <div className={`${baseClass} w-[72%] h-[72%] rotate-45 bg-gradient-to-b ${typeData.gradient} border border-white/50 shadow-xl ${typeData.glow} ${highlightClass}`}>
+        <div className={`${baseClass} w-[90%] h-[90%] rotate-45 bg-gradient-to-b ${typeData.gradient} border border-white/50 shadow-xl ${typeData.glow} ${highlightClass}`}>
             <div className="-rotate-45 flex items-center justify-center w-full h-full">
                  <Icon className="text-white w-3/5 h-3/5 drop-shadow-md" strokeWidth={2.5} />
             </div>
@@ -147,7 +147,7 @@ export const RunePiece: React.FC<RunePieceProps> = ({
   if (isLv4) {
     return (
       <motion.div {...motionProps}>
-        <div className={`${baseClass} w-[70%] h-[85%] rounded-sm bg-gradient-to-tr from-slate-900 via-${typeData.bg.split('-')[1]}-700 to-${typeData.bg.split('-')[1]}-500 border-2 ${typeData.border} shadow-2xl ${highlightClass}`}>
+        <div className={`${baseClass} w-[90%] h-[90%] rounded-sm bg-gradient-to-tr from-slate-900 via-${typeData.bg.split('-')[1]}-700 to-${typeData.bg.split('-')[1]}-500 border-2 ${typeData.border} shadow-2xl ${highlightClass}`}>
             <div className="absolute left-1 top-1 bottom-1 w-[2px] bg-white/20" />
             <Icon className={`${typeData.color} w-3/5 h-3/5 drop-shadow-lg`} strokeWidth={2} />
             {selectionOverlay}

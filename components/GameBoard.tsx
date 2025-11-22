@@ -214,10 +214,10 @@ export const GameBoard: React.FC<GameBoardProps> = ({
         <div className={`relative flex items-center justify-center ${isFullscreen ? 'h-full w-full' : ''}`}>
         
         <div 
-            className="grid gap-1.5 p-4 rounded-2xl bg-slate-900 shadow-2xl transition-colors duration-300 touch-none"
+            className="grid gap-1 p-2 rounded-2xl bg-slate-900 shadow-2xl transition-colors duration-300 touch-none"
             style={{
                 gridTemplateColumns: `repeat(${GRID_SIZE + 2}, minmax(0, 1fr))`,
-                width: isFullscreen ? 'min(100vh, 100vw)' : 'min(95vh, 95vw)',
+                width: isFullscreen ? 'min(100vh, 100vw)' : 'min(95vh, 98vw)',
                 maxWidth: isFullscreen ? 'none' : 'min(90vh, 1800px)',
                 backgroundColor: activeVoidId ? 'rgba(60, 20, 20, 0.95)' : undefined 
             }}
@@ -308,7 +308,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
         <DragOverlay dropAnimation={dropAnimation}>
             {activeRune ? (
                 <div className="w-full h-full flex items-center justify-center">
-                    <div className="w-[80px] h-[80px]">
+                    <div className="w-full h-full scale-110">
                         <RunePiece 
                             rune={activeRune} 
                             cellId={-1} 
