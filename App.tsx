@@ -1,10 +1,8 @@
-
 import React, { useState } from 'react';
 import { useGameLogic } from './hooks/useGameLogic';
 import { GameBoard } from './components/GameBoard';
 import { RuneStatsModal } from './components/RuneStatsModal';
 import { CollectionModal } from './components/CollectionModal';
-// 1. 新增 Menu 和 X 圖示
 import { Sword, HelpCircle, Move, RotateCcw, Shuffle, Maximize2, Minimize2, Trash2, BarChart3, Menu, X, BookOpen } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 
@@ -14,11 +12,8 @@ const App: React.FC = () => {
   const [showStats, setShowStats] = useState(false);
   const [showCollection, setShowCollection] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  
-  // 2. 新增選單開關狀態
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  // 3. 抽離出按鈕群組，這樣我們可以重複使用在電腦版和手機版
   const ActionButtons = ({ isMobile = false }) => (
     <>
         <button 
@@ -78,34 +73,31 @@ const App: React.FC = () => {
   );
 
   return (
-    <div className={`min-h-screen bg-slate-950 text-slate-200 flex flex-col items-center font-sans overflow-hidden ${isFullscreen ? 'p-0 justify-center' : 'p-4'}`}>
+    <div className={`min-h-screen bg-slate-950 text-slate-200 flex flex-col items-center font-sans overflow-hidden ${isFullscreen ? 'p-0 justify-center' : 'p-2 md:p-4'}`}>
       
       {!isFullscreen && (
         <>
-          <div className="w-full max-w-[800px] flex justify-between items-center mb-4 mt-2 relative z-40">
+          <div className="w-full max-w-[800px] flex justify-between items-center mb-2 mt-20 sm:mt-1 relative z-40">
             {/* 左側 LOGO */}
             <div className="flex items-center gap-3">
-                <div className="p-3 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-500/20">
-                    <Sword className="w-6 h-6" />
+                <div className="p-2 md:p-3 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-500/20">
+                    <Sword className="w-5 h-5 md:w-6 md:h-6" />
                 </div>
                 <div>
-                    <h1 className="font-bold text-xl leading-none tracking-wide bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">RUNIC</h1>
-                    <span className="text-xs text-slate-500 uppercase tracking-[0.3em] font-bold">Synthesis</span>
+                    <h1 className="font-bold text-lg md:text-xl leading-none tracking-wide bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">RUNIC</h1>
+                    <span className="text-[10px] md:text-xs text-slate-500 uppercase tracking-[0.3em] font-bold">Synthesis</span>
                 </div>
             </div>
             
             {/* 右側控制區 */}
-            
-            {/* 1. 電腦版 (md 以上顯示): 直接顯示整排按鈕 */}
             <div className="hidden md:flex gap-2">
                 <ActionButtons />
             </div>
 
-            {/* 2. 手機版 (md 以下顯示): 顯示漢堡選單按鈕 */}
             <div className="md:hidden">
                 <button 
                     onClick={() => setIsMenuOpen(!isMenuOpen)}
-                    className={`p-3 rounded-xl transition border ${
+                    className={`p-2.5 rounded-xl transition border ${
                         isMenuOpen 
                         ? 'bg-slate-700 text-white border-slate-500' 
                         : 'bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700'
@@ -114,17 +106,13 @@ const App: React.FC = () => {
                     {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
                 </button>
 
-                {/* 手機版下拉選單 */}
                 <AnimatePresence>
                     {isMenuOpen && (
                         <>
-                            {/* 點擊背景關閉 */}
                             <div 
                                 className="fixed inset-0 bg-black/20 backdrop-blur-[2px] z-40" 
                                 onClick={() => setIsMenuOpen(false)}
                             />
-                            
-                            {/* 選單本體 */}
                             <motion.div 
                                 initial={{ opacity: 0, y: -10, scale: 0.95 }}
                                 animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -140,14 +128,14 @@ const App: React.FC = () => {
           </div>
 
           {/* 分數板 */}
-          <div className="w-full max-w-[800px] flex gap-4 mb-8 relative z-0">
-              <div className="flex-1 bg-slate-900/80 rounded-2xl p-4 border border-slate-800 flex items-center justify-between px-6 shadow-xl backdrop-blur-sm">
-                  <span className="text-xs text-slate-400 uppercase font-bold tracking-wider">分數</span>
-                  <span className="text-3xl font-mono font-bold text-emerald-400 drop-shadow-sm">{score.toLocaleString()}</span>
+          <div className="w-full max-w-[800px] flex gap-3 md:gap-4 mb-8 md:mb-12 relative z-0">
+              <div className="flex-1 bg-slate-900/80 rounded-2xl p-3 md:p-4 border border-slate-800 flex items-center justify-between px-4 md:px-6 shadow-xl backdrop-blur-sm">
+                  <span className="text-[10px] md:text-xs text-slate-400 uppercase font-bold tracking-wider">分數</span>
+                  <span className="text-2xl md:text-3xl font-mono font-bold text-emerald-400 drop-shadow-sm">{score.toLocaleString()}</span>
               </div>
-              <div className="flex-1 bg-slate-900/80 rounded-2xl p-4 border border-slate-800 flex items-center justify-between px-6 shadow-xl backdrop-blur-sm">
-                  <span className="text-xs text-slate-400 uppercase font-bold tracking-wider">步數</span>
-                  <span className="text-3xl font-mono font-bold text-blue-400 drop-shadow-sm">{moves}</span>
+              <div className="flex-1 bg-slate-900/80 rounded-2xl p-3 md:p-4 border border-slate-800 flex items-center justify-between px-4 md:px-6 shadow-xl backdrop-blur-sm">
+                  <span className="text-[10px] md:text-xs text-slate-400 uppercase font-bold tracking-wider">步數</span>
+                  <span className="text-2xl md:text-3xl font-mono font-bold text-blue-400 drop-shadow-sm">{moves}</span>
               </div>
           </div>
         </>
@@ -171,7 +159,7 @@ const App: React.FC = () => {
       />
 
       {!isFullscreen && (
-        <div className="mt-8 text-center opacity-40 text-xs max-w-sm text-slate-300 leading-relaxed">
+        <div className="mt-4 md:mt-8 text-center opacity-40 text-[10px] md:text-xs max-w-sm text-slate-300 leading-relaxed">
             <p>集齊 3 個符文進行融合進化。<br/>拖曳至外部插槽可丟棄不需要的符文。</p>
         </div>
       )}
@@ -237,7 +225,6 @@ const App: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Stats Modal */}
       <AnimatePresence>
         <RuneStatsModal 
             isOpen={showStats} 
@@ -246,7 +233,6 @@ const App: React.FC = () => {
         />
       </AnimatePresence>
 
-      {/* Collection Modal */}
       <AnimatePresence>
         <CollectionModal 
             isOpen={showCollection} 

@@ -60,13 +60,18 @@ export const RunePiece: React.FC<RunePieceProps> = ({
   // 基本視覺
   const baseClass = "relative flex items-center justify-center";
 
-  const shapeEffect = shouldHighlight
-    ? `ring-3 ring-white ring-offset-2 ring-offset-slate-900 brightness-125 contrast-110 drop-shadow-[0_0_15px_rgba(255,255,255,0.9)] scale-110` 
+  const shapeEffect = shouldHighlight && !isAboutToDelete
+  ? `ring-3 ring-white ring-offset-2 ring-offset-slate-900 brightness-125 contrast-110 drop-shadow-[0_0_15px_rgba(255,255,255,0.9)] scale-110`
+  : shouldHighlight && isAboutToDelete
+    ? `ring-3 ring-white ring-offset-2 ring-offset-slate-900 brightness-125 contrast-110 drop-shadow-[0_0_15px_rgba(255,68,68,0.9)]`
     : '';
 
-  const shapeEffectLv1 = shouldHighlight
+  const shapeEffectLv1 = shouldHighlight && !isAboutToDelete
     ? `ring-2 ring-white ring-offset-1 ring-offset-slate-900 brightness-110 drop-shadow-[0_0_8px_rgba(255,255,255,0.6)] scale-105`
-    : '';
+    : shouldHighlight && isAboutToDelete
+      ? `ring-2 ring-white ring-offset-1 ring-offset-slate-900 brightness-110 drop-shadow-[0_0_8px_rgba(255,68,68,0.6)]`
+      : '';
+
 
   // 選中標籤
   const selectionOverlay = strictSelected ? (

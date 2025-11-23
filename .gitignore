@@ -22,3 +22,13 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Android build / IDE / temp files
+android/app/build/
+android/.gradle/
+android/captures/
+android/.externalNativeBuild/
+android/local.properties
+android/*.iml
+android/.idea/
+
