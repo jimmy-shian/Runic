@@ -5,7 +5,6 @@ import react from '@vitejs/plugin-react';
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
     return {
-      base: '/Runic/',  // 讓 GitHub Pages 正確找到資源
       server: {
         port: 3000,
         host: '0.0.0.0',

@@ -28,6 +28,7 @@ export interface Cell {
   x: number;
   y: number;
   rune: Rune | null;
+  isDeleted?: boolean;
 }
 
 export type GridState = Cell[];

@@ -1,4 +1,3 @@
-
 import { useCallback, useRef } from 'react';
 import { SOUND_FREQS } from '../constants';
 import { SoundType } from '../types';
@@ -21,7 +20,7 @@ export const useSound = (enabled: boolean = true) => {
   const playSound = useCallback((type: SoundType) => {
     if (!enabled) return;
     initAudio();
-    
+
     const ctx = audioContextRef.current;
     if (!ctx) return;
 
@@ -29,45 +28,93 @@ export const useSound = (enabled: boolean = true) => {
     if (!freqs) return;
 
     const now = ctx.currentTime;
-    const oscillator = ctx.createOscillator();
-    const gainNode = ctx.createGain();
 
-    oscillator.connect(gainNode);
-    gainNode.connect(ctx.destination);
+    // 通用 helper：播放單個 oscillator
+    const playOscillator = (freq: number, duration: number, type: OscillatorType = 'sine', gainValue = 0.1, filterFreq?: number) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      let node: AudioNode = osc;
 
-    // Simple synthesis based on type
-    if (type === 'match' || type === 'levelup') {
-        oscillator.type = 'sine';
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, now);
+      gain.gain.setValueAtTime(gainValue, now);
+
+      if (filterFreq) {
+        const filter = ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(filterFreq, now);
+        osc.connect(filter);
+        filter.connect(gain);
+      } else {
+        osc.connect(gain);
+      }
+
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + duration);
+    };
+
+    // --- 不同音效 ---
+    switch (type) {
+      case 'move':
+        // 快速短暫滑動音，帶輕微震動感
         freqs.forEach((f, i) => {
-            oscillator.frequency.setValueAtTime(f, now + i * 0.1);
+          playOscillator(f, 0.05, 'triangle', 0.05 + i * 0.02);
         });
-        gainNode.gain.setValueAtTime(0.1, now);
-        gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
-        oscillator.start(now);
-        oscillator.stop(now + 0.4);
-    } else if (type === 'move') {
-        oscillator.type = 'triangle';
-        oscillator.frequency.setValueAtTime(freqs[0], now);
-        gainNode.gain.setValueAtTime(0.05, now);
-        gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
-        oscillator.start(now);
-        oscillator.stop(now + 0.1);
-    } else if (type === 'discard') {
-        oscillator.type = 'sawtooth';
-        oscillator.frequency.setValueAtTime(freqs[0], now);
-        oscillator.frequency.linearRampToValueAtTime(freqs[1], now + 0.2);
-        gainNode.gain.setValueAtTime(0.1, now);
-        gainNode.gain.linearRampToValueAtTime(0.001, now + 0.2);
-        oscillator.start(now);
-        oscillator.stop(now + 0.2);
-    } else if (type === 'merge') {
-        oscillator.type = 'sine';
-        oscillator.frequency.setValueAtTime(freqs[0], now);
-        oscillator.frequency.exponentialRampToValueAtTime(freqs[1], now + 0.3);
-        gainNode.gain.setValueAtTime(0.2, now);
-        gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
-        oscillator.start(now);
-        oscillator.stop(now + 0.3);
+        break;
+
+      case 'discard':
+        // 多 oscillator 疊加，快速滑動+破碎感
+        freqs.forEach((f, i) => {
+          playOscillator(f, 0.2, 'sawtooth', 0.08 / (i + 1), f + 200);
+        });
+        break;
+
+      case 'merge':
+        // 上升弧線音，帶空間感
+        freqs.forEach((f, i) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          const filter = ctx.createBiquadFilter();
+
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(f, now);
+          osc.frequency.exponentialRampToValueAtTime(f * 1.8, now + 0.3);
+
+          gain.gain.setValueAtTime(0.15 / (i + 1), now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+
+          filter.type = 'lowpass';
+          filter.frequency.setValueAtTime(f * 2, now);
+
+          osc.connect(filter);
+          filter.connect(gain);
+          gain.connect(ctx.destination);
+
+          osc.start(now);
+          osc.stop(now + 0.3);
+        });
+        break;
+
+      case 'match':
+      case 'levelup':
+        // 層次感旋律音效
+        freqs.forEach((f, i) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(f, now + i * 0.1);
+          gain.gain.setValueAtTime(0.1, now + i * 0.1);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4 + i * 0.05);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now + i * 0.1);
+          osc.stop(now + 0.4 + i * 0.05);
+        });
+        break;
+
+      default:
+        break;
     }
 
   }, [enabled, initAudio]);

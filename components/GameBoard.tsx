@@ -1,16 +1,17 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
     DndContext, 
     DragOverlay, 
     useSensor, 
     useSensors, 
-    PointerSensor,
-    TouchSensor,
-    DragStartEvent,
-    DragEndEvent,
-    DragOverEvent,
-    defaultDropAnimationSideEffects,
-    DropAnimation
+    PointerSensor, 
+    TouchSensor, 
+    DragStartEvent, 
+    DragEndEvent, 
+    DragOverEvent, 
+    defaultDropAnimationSideEffects, 
+    DropAnimation 
 } from '@dnd-kit/core';
 import { GridState, Rune } from '../types';
 import { RunePiece } from './RunePiece';
@@ -88,14 +89,51 @@ export const GameBoard: React.FC<GameBoardProps> = ({
       return Math.abs(x1 - x2) + Math.abs(y1 - y2) === 1;
   };
 
-  const getAutoDiscardZone = (dragId: number): string | null => {
+  // 用於自動吸附判斷（當拖出格子外，沒有 hover 到特定 void slot 時）
+  const getAutoDiscardZone = (dragId: number, delta: { x: number, y: number }): string | null => {
     const dX = dragId % GRID_SIZE;
     const dY = Math.floor(dragId / GRID_SIZE);
+    
+    // Top-Left Corner
+    if (dX === 0 && dY === 0) {
+        // More horizontal movement to left ? Left : Top
+        return (Math.abs(delta.x) > Math.abs(delta.y) && delta.x < 0) ? `left-${dY}` : `top-${dX + 1}`;
+    }
+    // Top-Right Corner
+    if (dX === GRID_SIZE - 1 && dY === 0) {
+        // More horizontal movement to right ? Right : Top
+        return (Math.abs(delta.x) > Math.abs(delta.y) && delta.x > 0) ? `right-${dY}` : `top-${dX + 1}`;
+    }
+    // Bottom-Left Corner
+    if (dX === 0 && dY === GRID_SIZE - 1) {
+        // More horizontal to left ? Left : Bottom
+        return (Math.abs(delta.x) > Math.abs(delta.y) && delta.x < 0) ? `left-${dY}` : `bottom-${dX + 1}`;
+    }
+    // Bottom-Right Corner
+    if (dX === GRID_SIZE - 1 && dY === GRID_SIZE - 1) {
+        // More horizontal to right ? Right : Bottom
+        return (Math.abs(delta.x) > Math.abs(delta.y) && delta.x > 0) ? `right-${dY}` : `bottom-${dX + 1}`;
+    }
+
+    // Normal Edges
     if (dY === 0) return `top-${dX + 1}`;
     if (dY === GRID_SIZE - 1) return `bottom-${dX + 1}`;
     if (dX === 0) return `left-${dY}`;
     if (dX === GRID_SIZE - 1) return `right-${dY}`;
     return null;
+  };
+
+  // 檢查某個 void zone 是否為該 cell 的合法鄰居
+  const isValidDiscardZone = (dragId: number, zoneId: string): boolean => {
+      const x = dragId % GRID_SIZE;
+      const y = Math.floor(dragId / GRID_SIZE);
+      
+      if (y === 0 && zoneId === `top-${x + 1}`) return true;
+      if (y === GRID_SIZE - 1 && zoneId === `bottom-${x + 1}`) return true;
+      if (x === 0 && zoneId === `left-${y}`) return true;
+      if (x === GRID_SIZE - 1 && zoneId === `right-${y}`) return true;
+      
+      return false;
   };
 
   // --- Event Handlers ---
@@ -113,9 +151,11 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   const handleDragOver = (event: DragOverEvent) => {
       const { active, over } = event;
       
+      // Case 1: 拖曳到不知名區域 (沒有 Over) -> 嘗試自動判斷是否在邊界外
       if (!over) {
         const dragIdNum = parseInt(active.id as string);
-        const targetZone = getAutoDiscardZone(dragIdNum);
+        // 使用 delta 來判斷方向
+        const targetZone = getAutoDiscardZone(dragIdNum, event.delta);
         if (targetZone) {
             if (activeVoidId !== targetZone) setActiveVoidId(targetZone);
         } else {
@@ -127,20 +167,22 @@ export const GameBoard: React.FC<GameBoardProps> = ({
 
       const overIdString = over.id as string;
       
-      // Void Slots Logic
+      // Case 2: 拖曳到 Void Slot (明確 Hover)
       if (overIdString.startsWith('void-')) {
           const zoneId = overIdString.replace('void-', '');
           const dragIdNum = parseInt(active.id as string);
-          const correctZone = getAutoDiscardZone(dragIdNum);
           
-          if (correctZone === zoneId) {
+          // 只要是該 cell 合法的相鄰 void slot 都可以
+          if (isValidDiscardZone(dragIdNum, zoneId)) {
                setActiveVoidId(zoneId);
+          } else {
+               if (activeVoidId !== null) setActiveVoidId(null);
           }
           setOverId(null);
           return;
       }
 
-      // Grid Cells Logic
+      // Case 3: 拖曳到 Grid Cells
       if (activeVoidId !== null) setActiveVoidId(null);
 
       const dragIdNum = parseInt(active.id as string);
@@ -214,10 +256,10 @@ export const GameBoard: React.FC<GameBoardProps> = ({
         <div className={`relative flex items-center justify-center ${isFullscreen ? 'h-full w-full' : ''}`}>
         
         <div 
-            className="grid gap-1 p-2 rounded-2xl bg-slate-900 shadow-2xl transition-colors duration-300 touch-none"
+            className="grid gap-1.5 p-4 rounded-2xl bg-slate-900 shadow-2xl transition-colors duration-300 touch-none"
             style={{
                 gridTemplateColumns: `repeat(${GRID_SIZE + 2}, minmax(0, 1fr))`,
-                width: isFullscreen ? 'min(100vh, 100vw)' : 'min(95vh, 98vw)',
+                width: isFullscreen ? 'min(100vh, 100vw)' : 'min(95vh, 95vw)',
                 maxWidth: isFullscreen ? 'none' : 'min(90vh, 1800px)',
                 backgroundColor: activeVoidId ? 'rgba(60, 20, 20, 0.95)' : undefined 
             }}
@@ -256,8 +298,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
                         // [回歸] 計算連線提示高亮
                         const isMatch = selectedRune && displayRune 
                             && displayRune.type === selectedRune.type 
-                            && displayRune.level === selectedRune.level
-                            && cell.id !== selectedId;
+                            && displayRune.level === selectedRune.level;
 
                         return (
                             <DroppableCell 
@@ -278,16 +319,15 @@ export const GameBoard: React.FC<GameBoardProps> = ({
                                         data={displayRune}
                                         disabled={isProcessing}
                                         className="w-full h-full"
-                                        // [回歸] 傳遞點擊事件
                                         onClick={() => handleClick(cell.id)}
                                     >
                                          <RunePiece 
                                             rune={displayRune} 
                                             cellId={cell.id}
                                             isAboutToDelete={isAboutToDelete}
-                                            // [回歸] 傳遞高亮狀態
                                             isSelected={isSelected}
                                             isMatchHighlighted={!!isMatch}
+                                            isDeleted={cell.isDeleted}
                                          />
                                     </DraggableRune>
                                 )}
@@ -308,11 +348,14 @@ export const GameBoard: React.FC<GameBoardProps> = ({
         <DragOverlay dropAnimation={dropAnimation}>
             {activeRune ? (
                 <div className="w-full h-full flex items-center justify-center">
-                    <div className="w-full h-full scale-110">
+                    <div className="w-[80px] h-[80px]">
                         <RunePiece 
-                            rune={activeRune} 
-                            cellId={-1} 
-                            isSelected={true} // 拖曳時顯示詳細等級
+                        rune={activeRune} 
+                        cellId={-1}
+                        isSelected={false}
+                        isMatchHighlighted={false}
+                        isAboutToDelete={activeVoidId !== null}
+                        isDragging={true} 
                         />
                     </div>
                 </div>

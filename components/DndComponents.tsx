@@ -1,53 +1,57 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 
-// 修改介面，加入 onClick
 interface DraggableProps {
   id: string;
   data?: any;
   disabled?: boolean;
   children: React.ReactNode;
   className?: string;
-  onClick?: () => void; // [新增] 接收點擊事件
+  onClick?: () => void;
 }
 
-export const DraggableRune: React.FC<DraggableProps> = ({ id, data, disabled, children, className, onClick }) => {
+export const DraggableRune: React.FC<DraggableProps> = ({
+  id,
+  data,
+  disabled,
+  children,
+  className,
+  onClick,
+}) => {
+  const [isPointerDown, setPointerDown] = useState(false);
+
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
-    id: id,
-    data: data,
-    disabled: disabled,
+    id,
+    data,
+    disabled,
   });
 
   return (
-    <div 
-      ref={setNodeRef} 
-      {...listeners} 
-      {...attributes} 
-      // [新增] 這裡綁定 onClick
-      // 由於我们在 Sensor 設定了 activationConstraint (移動 5px 才算拖曳)
-      // 所以如果是單純點擊，這裡的 onClick 會被正常觸發
+    <div
+      ref={setNodeRef}
+      {...listeners}
+      {...attributes}
       onClick={onClick}
-      className={`${className} ${isDragging ? 'opacity-20 scale-90' : ''} touch-none`}
+      onPointerDown={(e) => {
+        listeners.onPointerDown?.(e); // 保留 dnd-kit 的拖曳啟動
+        setPointerDown(true);
+      }}
+      onPointerUp={() => setPointerDown(false)}
+      onPointerLeave={() => setPointerDown(false)}
+      className={`${className} touch-none`} // tailwind: touch-none => touch-action: none
+      style={{ touchAction: 'none' }}      // 確保瀏覽器原生手勢被禁止
     >
-      {children}
+      {React.cloneElement(children as any, {
+        isDragging,
+        isPointerDown,
+      })}
     </div>
   );
 };
 
-// DroppableCell 不需要改，因為點擊通常是發生在符文(Draggable)上
-interface DroppableProps {
-  id: string;
-  data?: any;
-  children: React.ReactNode;
-  className?: string;
-}
-
-export const DroppableCell: React.FC<DroppableProps> = ({ id, data, children, className }) => {
-  const { setNodeRef } = useDroppable({
-    id: id,
-    data: data,
-  });
-
+// DroppableCell 不用動
+export const DroppableCell: React.FC<any> = ({ id, data, children, className }) => {
+  const { setNodeRef } = useDroppable({ id, data });
   return (
     <div ref={setNodeRef} className={className}>
       {children}

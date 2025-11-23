@@ -9,14 +9,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@dnd-kit/core": "^6.3.1",
-    "@dnd-kit/modifiers": "^9.0.0",
-    "@dnd-kit/utilities": "^3.2.2",
-    "framer-motion": "^12.23.24",
-    "lucide-react": "^0.554.0",
-    "mobile-drag-drop": "^3.0.0-rc.0",
+    "react-dom": "^19.2.0",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "lucide-react": "^0.554.0",
+    "framer-motion": "^12.23.24",
+    "mobile-drag-drop": "^3.0.0-rc.0",
+    "@dnd-kit/core": "^6.3.1"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

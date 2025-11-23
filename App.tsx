@@ -1,15 +1,18 @@
+
 import React, { useState } from 'react';
 import { useGameLogic } from './hooks/useGameLogic';
 import { GameBoard } from './components/GameBoard';
 import { RuneStatsModal } from './components/RuneStatsModal';
+import { CollectionModal } from './components/CollectionModal';
 // 1. 新增 Menu 和 X 圖示
-import { Sword, HelpCircle, Move, RotateCcw, Shuffle, Maximize2, Minimize2, Trash2, BarChart3, Menu, X } from 'lucide-react';
+import { Sword, HelpCircle, Move, RotateCcw, Shuffle, Maximize2, Minimize2, Trash2, BarChart3, Menu, X, BookOpen } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 
 const App: React.FC = () => {
-  const { grid, score, moves, isProcessing, runeStats, handleInteraction, handleDiscard, reshuffleBoard, resetGame } = useGameLogic();
+  const { grid, score, moves, isProcessing, runeStats, collection, handleInteraction, handleDiscard, reshuffleBoard, resetGame } = useGameLogic();
   const [showHelp, setShowHelp] = useState(false);
   const [showStats, setShowStats] = useState(false);
+  const [showCollection, setShowCollection] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   
   // 2. 新增選單開關狀態
@@ -18,6 +21,15 @@ const App: React.FC = () => {
   // 3. 抽離出按鈕群組，這樣我們可以重複使用在電腦版和手機版
   const ActionButtons = ({ isMobile = false }) => (
     <>
+        <button 
+            onClick={() => { setShowCollection(true); setIsMenuOpen(false); }}
+            className="p-3 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 transition flex items-center justify-center gap-2"
+            title="符文圖鑑"
+        >
+            <BookOpen className="w-5 h-5" />
+            {isMobile && <span className="text-sm font-bold">符文圖鑑</span>}
+        </button>
+
         <button 
             onClick={() => { setShowStats(true); setIsMenuOpen(false); }}
             className="p-3 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 transition flex items-center justify-center gap-2"
@@ -174,7 +186,7 @@ const App: React.FC = () => {
             >
                 <motion.div 
                     initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }}
-                    className="bg-slate-900 border border-slate-700 p-8 rounded-3xl max-w-md w-full shadow-2xl"
+                    className="bg-slate-900 border border-slate-700 p-8 rounded-3xl max-w-md w-full shadow-2xl overflow-y-auto max-h-[80vh]"
                     onClick={e => e.stopPropagation()}
                 >
                     <h2 className="text-2xl font-bold mb-8 flex items-center gap-3 text-white">
@@ -186,8 +198,13 @@ const App: React.FC = () => {
                                 <Move className="w-6 h-6" />
                             </div>
                             <div>
-                                <strong className="text-emerald-200 block text-sm uppercase tracking-wide mb-1">連線與進化</strong>
-                                集齊 3 個同等級的符文，它們就會「合體」進化成更強的符文！目標是煉出最高級的神器。
+                                <strong className="text-emerald-200 block text-sm uppercase tracking-wide mb-1">連線與計分</strong>
+                                <p>水平或垂直連線 3 個以上相同符文即可消除並合成。</p>
+                                <ul className="list-disc list-inside mt-2 text-xs text-slate-400 space-y-1">
+                                    <li>Lv1 ~ Lv4 消除：獲得 <span className="text-emerald-300">Level x 數量</span> 分。</li>
+                                    <li><span className="text-amber-400">Lv5 (神器)</span> 特殊效果：觸發整行/整列消除！</li>
+                                    <li>Lv5 額外獎勵：消除或丟棄皆可獲得 <span className="text-amber-400">+10 分</span>。</li>
+                                </ul>
                             </div>
                         </li>
                         <li className="flex gap-5 items-start">
@@ -196,7 +213,7 @@ const App: React.FC = () => {
                             </div>
                             <div>
                                 <strong className="text-indigo-200 block text-sm uppercase tracking-wide mb-1">戰術重洗</strong>
-                                卡關了嗎？別硬撐！使用重洗功能打亂版面，也許下一步的契機就藏在混亂之中。
+                                卡關了嗎？使用重洗功能打亂版面，尋找新的契機。
                             </div>
                         </li>
                         <li className="flex gap-5 items-start">
@@ -205,7 +222,7 @@ const App: React.FC = () => {
                             </div>
                             <div>
                                 <strong className="text-red-200 block text-sm uppercase tracking-wide mb-1">邊界斷捨離</strong>
-                                遇到擋路的符文？直接把它拖到格子外圍的虛空處，跟它說掰掰（銷毀）！
+                                將符文拖曳至格子外圍的虛空處即可銷毀。
                             </div>
                         </li>
                     </ul>
@@ -226,6 +243,15 @@ const App: React.FC = () => {
             isOpen={showStats} 
             onClose={() => setShowStats(false)} 
             stats={runeStats} 
+        />
+      </AnimatePresence>
+
+      {/* Collection Modal */}
+      <AnimatePresence>
+        <CollectionModal 
+            isOpen={showCollection} 
+            onClose={() => setShowCollection(false)} 
+            collection={collection} 
         />
       </AnimatePresence>
     </div>

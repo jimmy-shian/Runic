@@ -22,46 +22,52 @@ export const TYPE_CONFIG: Record<RuneType, {
   icon: React.ElementType; 
   gradient: string;
   border: string;
+  solidColor: string; // 用於純色填充
 }> = {
   [RuneType.Fire]: { 
-    color: 'text-red-100', 
+    color: 'text-red-500', 
     bg: 'bg-red-600',
     glow: 'shadow-red-500/80', 
     icon: Flame, 
-    gradient: 'from-red-600 to-orange-600',
-    border: 'border-red-400'
+    gradient: 'from-red-500 to-orange-600',
+    border: 'border-red-400',
+    solidColor: '#ef4444'
   },
   [RuneType.Water]: { 
-    color: 'text-blue-100', 
+    color: 'text-blue-500', 
     bg: 'bg-blue-600',
     glow: 'shadow-blue-500/80', 
     icon: Droplets, 
-    gradient: 'from-blue-600 to-cyan-600',
-    border: 'border-blue-400'
+    gradient: 'from-blue-500 to-cyan-600',
+    border: 'border-blue-400',
+    solidColor: '#3b82f6'
   },
   [RuneType.Wood]: { 
-    color: 'text-green-100', 
-    bg: 'bg-green-600',
-    glow: 'shadow-green-500/80', 
+    color: 'text-emerald-500', 
+    bg: 'bg-emerald-600',
+    glow: 'shadow-emerald-500/80', 
     icon: Leaf, 
-    gradient: 'from-green-600 to-emerald-600',
-    border: 'border-green-400'
+    gradient: 'from-emerald-500 to-green-600',
+    border: 'border-emerald-400',
+    solidColor: '#10b981'
   },
   [RuneType.Earth]: { 
-    color: 'text-yellow-100', 
+    color: 'text-yellow-500', 
     bg: 'bg-yellow-600',
     glow: 'shadow-yellow-500/80', 
     icon: Mountain, 
-    gradient: 'from-yellow-600 to-amber-600',
-    border: 'border-yellow-400'
+    gradient: 'from-yellow-400 to-amber-500',
+    border: 'border-yellow-400',
+    solidColor: '#eab308'
   },
   [RuneType.Lightning]: { 
-    color: 'text-purple-100', 
+    color: 'text-purple-500', 
     bg: 'bg-purple-600',
     glow: 'shadow-purple-500/80', 
     icon: Zap, 
-    gradient: 'from-purple-600 to-fuchsia-600',
-    border: 'border-purple-400'
+    gradient: 'from-purple-500 to-fuchsia-600',
+    border: 'border-purple-400',
+    solidColor: '#a855f7'
   },
 };
 
@@ -73,13 +79,17 @@ export const LEVEL_CONFIG: Record<RuneLevel, { name: string; scale: string; icon
   [RuneLevel.Blade]: { name: 'Soulblade', scale: 'scale-100', icon: Sword },
 };
 
-export const SCORE_TABLE: Record<RuneLevel, number> = {
-  [RuneLevel.Drop]: 10,
-  [RuneLevel.Gem]: 50,
-  [RuneLevel.Crystal]: 150,
-  [RuneLevel.Tome]: 500,
-  [RuneLevel.Blade]: 2000,
+// 簡單計分規則：Lv1=1, Lv2=2, Lv3=3, Lv4=4
+// Lv5 額外計算 (Bonus)
+export const SCORE_TABLE: Record<number, number> = {
+  [RuneLevel.Drop]: 1,
+  [RuneLevel.Gem]: 2,
+  [RuneLevel.Crystal]: 3,
+  [RuneLevel.Tome]: 4,
+  [RuneLevel.Blade]: 5, // 基礎分，通常會有額外 Bonus
 };
+
+export const LV5_BONUS_SCORE = 10;
 
 export const SOUND_FREQS = {
   move: [300, 400],
