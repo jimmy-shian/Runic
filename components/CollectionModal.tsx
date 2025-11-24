@@ -14,7 +14,8 @@ export const CollectionModal: React.FC<CollectionModalProps> = ({ isOpen, onClos
   if (!isOpen) return null;
 
   const runeTypes = Object.values(RuneType);
-  const runeLevels = [1, 2, 3, 4, 5];
+  // 修改 1: 移除 1，只顯示 Lv2 - Lv5
+  const runeLevels = [2, 3, 4, 5];
 
   return (
     <motion.div 
@@ -48,10 +49,11 @@ export const CollectionModal: React.FC<CollectionModalProps> = ({ isOpen, onClos
                 
                 {/* Scrollable Table Wrapper */}
                 <div className="overflow-x-auto pb-2 -mx-2 md:mx-0">
-                    <table className="w-full text-left border-collapse min-w-[350px]">
+                    <table className="w-full text-left border-collapse min-w-[300px]">
                         <thead>
                             <tr className="border-b border-slate-700">
-                                <th className="p-2 md:p-3 text-left text-slate-500 text-xs text-center font-bold uppercase whitespace-nowrap sticky left-0 z-20 bg-slate-900 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.5)]">
+                                {/* 修改 2: 標題置中 */}
+                                <th className="p-2 md:p-3 text-center text-slate-500 text-xs uppercase tracking-wider whitespace-nowrap sticky left-0 z-20 bg-slate-900 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.5)]">
                                     元素
                                 </th>
                                 {runeLevels.map(lvl => (
@@ -71,6 +73,7 @@ export const CollectionModal: React.FC<CollectionModalProps> = ({ isOpen, onClos
                                     <tr key={type} className="group hover:bg-slate-800/30 transition-colors">
                                         {/* Sticky Type Label */}
                                         <td className="p-2 md:p-3 whitespace-nowrap sticky left-0 z-10 bg-slate-900 group-hover:bg-slate-800 transition-colors shadow-[2px_0_5px_-2px_rgba(0,0,0,0.5)] border-r border-slate-800/50">
+                                            {/* 修改 3: 內容置中 */}
                                             <div className="flex items-center justify-center">
                                                 <div className={`p-1.5 md:p-2 rounded-lg ${typeConfig.bg.replace('bg-', 'bg-opacity-20 bg-')}`}>
                                                     <TypeIcon className={`w-5 h-5 md:w-6 md:h-6 ${typeConfig.color}`} />

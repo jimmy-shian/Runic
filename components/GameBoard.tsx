@@ -254,8 +254,8 @@ export const GameBoard: React.FC<GameBoardProps> = ({
             className="grid rounded-2xl bg-slate-900 shadow-2xl transition-colors duration-300 touch-none p-2 gap-1 md:p-4 md:gap-1.5"
             style={{
                 // 調整網格比例：兩側 0.5fr，中間符文 1fr
-                gridTemplateColumns: `0.3fr repeat(${GRID_SIZE}, 1fr) 0.3fr`, //直
-                gridTemplateRows: `0.65fr repeat(${GRID_SIZE}, 1fr) 0.65fr`,
+                gridTemplateColumns: `minmax(15px, 15px) repeat(${GRID_SIZE}, 1fr) minmax(15px, 15px)`, //左右
+                gridTemplateRows: `minmax(30px, 30px) repeat(${GRID_SIZE}, 1fr) minmax(30px, 30px)`,
                 
                 // Mobile: maximize width usage (98vw). Desktop: reasonable limit. Fullscreen: full viewport.
                 width: isFullscreen ? 'min(100vh, 100vw)' : 'min(98vh, 98vw)',
@@ -295,9 +295,10 @@ export const GameBoard: React.FC<GameBoardProps> = ({
                         const isAboutToDelete = isActiveSource && activeVoidId !== null;
                         const isSelected = selectedId === cell.id;
                         
-                        const isMatch = selectedRune && displayRune 
-                            && displayRune.type === selectedRune.type 
-                            && displayRune.level === selectedRune.level;
+                        const realRune = cell.rune;
+                        const isMatch = selectedRune && realRune
+                            && realRune.type === selectedRune.type
+                            && realRune.level === selectedRune.level;
 
                         return (
                             <DroppableCell 

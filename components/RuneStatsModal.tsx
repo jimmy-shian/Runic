@@ -14,7 +14,8 @@ export const RuneStatsModal: React.FC<RuneStatsModalProps> = ({ isOpen, onClose,
   if (!isOpen) return null;
 
   const runeTypes = Object.values(RuneType);
-  const runeLevels = [1, 2, 3, 4, 5]; // Lv1 - Lv5
+  // 修改 1: 移除 1，只顯示 Lv2 - Lv5
+  const runeLevels = [2, 3, 4, 5]; 
 
   return (
     <motion.div 
@@ -48,10 +49,14 @@ export const RuneStatsModal: React.FC<RuneStatsModalProps> = ({ isOpen, onClose,
                 
                 {/* Table Wrapper for Horizontal Scroll */}
                 <div className="overflow-x-auto pb-2 -mx-2 md:mx-0">
-                    <table className="w-full text-left border-collapse min-w-[350px]">
+                    <table className="w-full text-left border-collapse min-w-[300px]">
                         <thead>
                             <tr className="border-b border-slate-700">
-                                <th className="p-2 md:p-3 text-left text-slate-500 text-xs uppercase tracking-wider whitespace-nowrap sticky left-0 z-20 bg-slate-900 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.5)]">
+                                {/* 修改 2: 
+                                    - 簡化文字為 "屬性" 以縮小寬度
+                                    - 改為 text-center 置中
+                                */}
+                                <th className="p-2 md:p-3 text-center text-slate-500 text-xs uppercase tracking-wider whitespace-nowrap sticky left-0 z-20 bg-slate-900 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.5)]">
                                     屬性 / 等級
                                 </th>
                                 {runeLevels.map(level => (
@@ -75,7 +80,8 @@ export const RuneStatsModal: React.FC<RuneStatsModalProps> = ({ isOpen, onClose,
                                     <tr key={type} className="group hover:bg-slate-800/30 transition-colors">
                                         {/* Sticky First Column */}
                                         <td className="p-2 md:p-3 whitespace-nowrap sticky left-0 z-10 bg-slate-900 group-hover:bg-slate-800 transition-colors shadow-[2px_0_5px_-2px_rgba(0,0,0,0.5)] border-r border-slate-800/50">
-                                            <div className="flex items-center gap-2 md:gap-3">
+                                            {/* 修改 3: 加上 justify-center 讓圖示置中 */}
+                                            <div className="flex items-center justify-center gap-2 md:gap-3">
                                                 <div className={`p-1.5 md:p-2 rounded-lg ${typeConfig.bg.replace('bg-', 'bg-opacity-20 bg-')}`}>
                                                     <TypeIcon className={`w-4 h-4 md:w-5 md:h-5 ${typeConfig.color}`} />
                                                 </div>
