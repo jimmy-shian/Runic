@@ -116,3 +116,5 @@ runic-synthesis/
 
 * [Capacitor Docs](https://capacitorjs.com/docs)
 * [Vite Docs](https://vitejs.dev/)
+
+Release APK 與 CI/CD：請見 [DEPLOYMENT.md](DEPLOYMENT.md)。

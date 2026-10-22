@@ -1,164 +1,68 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { SOUND_FREQS } from '../constants';
 import { SoundType } from '../types';
 
-export const useSound = (enabled: boolean = true) => {
-  const audioContextRef = useRef<AudioContext | null>(null);
-
+export const useSound = (enabled = true) => {
+  const context = useRef<AudioContext | null>(null);
+  const output = useRef<GainNode | null>(null);
+  const enabledRef = useRef(enabled);
+  enabledRef.current = enabled;
   const initAudio = useCallback(() => {
-    if (!audioContextRef.current) {
-      const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-      if (AudioContext) {
-        audioContextRef.current = new AudioContext();
-      }
+    if (!enabledRef.current) return;
+    const Constructor = window.AudioContext || (window as any).webkitAudioContext;
+    if (!Constructor) return;
+    if (!context.current) {
+      context.current = new Constructor();
+      output.current = context.current!.createGain();
+      output.current.connect(context.current!.destination);
     }
-    if (audioContextRef.current?.state === 'suspended') {
-      audioContextRef.current.resume();
-    }
+    if (context.current.state === 'suspended') void context.current.resume().catch(() => {});
   }, []);
-
-  const playSound = useCallback((type: SoundType) => {
-    if (!enabled) return;
+  useEffect(() => {
+    if (output.current && context.current) output.current.gain.setValueAtTime(enabled ? 1 : 0, context.current.currentTime);
+  }, [enabled]);
+  useEffect(() => () => { void context.current?.close(); }, []);
+  const playSound = useCallback((type: SoundType, combo = 1) => {
+    if ((type === 'invalid' || type === 'blast') && 'vibrate' in navigator) navigator.vibrate(type === 'blast' ? 20 : 14);
+    if (!enabledRef.current) return;
     initAudio();
-
-    const ctx = audioContextRef.current;
-    if (!ctx) return;
-
-    const freqs = SOUND_FREQS[type];
-    if (!freqs) return;
-
+    const ctx = context.current;
+    const destination = output.current;
+    if (!ctx || !destination) return;
+    destination.gain.setValueAtTime(1, ctx.currentTime);
     const now = ctx.currentTime;
-
-    // 通用 helper：播放單個 oscillator
-    const playOscillator = (freq: number, duration: number, type: OscillatorType = 'sine', gainValue = 0.1, filterFreq?: number) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      let node: AudioNode = osc;
-
-      osc.type = type;
-      osc.frequency.setValueAtTime(freq, now);
-      gain.gain.setValueAtTime(gainValue, now);
-
-      if (filterFreq) {
-        const filter = ctx.createBiquadFilter();
-        filter.type = 'lowpass';
-        filter.frequency.setValueAtTime(filterFreq, now);
-        osc.connect(filter);
-        filter.connect(gain);
-      } else {
-        osc.connect(gain);
-      }
-
-      gain.connect(ctx.destination);
-      osc.start(now);
-      osc.stop(now + duration);
+    const tone = (frequency: number, duration: number, volume = .1, offset = 0, endFrequency = frequency, wave: OscillatorType = 'sine') => {
+      const osc = ctx.createOscillator(); const gain = ctx.createGain();
+      osc.type = wave;
+      osc.frequency.setValueAtTime(frequency, now + offset);
+      osc.frequency.exponentialRampToValueAtTime(endFrequency, now + offset + duration);
+      gain.gain.setValueAtTime(volume, now + offset);
+      gain.gain.exponentialRampToValueAtTime(.0001, now + offset + duration);
+      osc.connect(gain); gain.connect(destination);
+      osc.onended = () => { osc.disconnect(); gain.disconnect(); };
+      osc.start(now + offset); osc.stop(now + offset + duration);
     };
-
-    // --- 不同音效 ---
+    const noise = (frequency: number, duration: number, volume = .15) => {
+      const buffer = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * duration), ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+      const source = ctx.createBufferSource(); const filter = ctx.createBiquadFilter(); const gain = ctx.createGain();
+      source.buffer = buffer; filter.type = 'bandpass'; filter.frequency.value = frequency; filter.Q.value = 3;
+      gain.gain.setValueAtTime(volume, now); gain.gain.exponentialRampToValueAtTime(.0001, now + duration);
+      source.connect(filter); filter.connect(gain); gain.connect(destination);
+      source.onended = () => { source.disconnect(); filter.disconnect(); gain.disconnect(); };
+      source.start(now); source.stop(now + duration);
+    };
     switch (type) {
-      case 'move': {
-        // “shoow” 滑動聲：白噪音 + bandpass + 短淡出
-        const noiseBuffer = ctx.createBuffer(1, ctx.sampleRate * 0.15, ctx.sampleRate);
-        const data = noiseBuffer.getChannelData(0);
-        for (let i = 0; i < data.length; i++) {
-          data[i] = (Math.random() * 2 - 1) * 0.6; // 白噪音
-        }
-
-        const noise = ctx.createBufferSource();
-        noise.buffer = noiseBuffer;
-
-        const filter = ctx.createBiquadFilter();
-        filter.type = 'bandpass';
-        filter.frequency.setValueAtTime(1600, now); // 中高頻，聽起來像摩擦
-        filter.Q.setValueAtTime(3, now);
-
-        const gain = ctx.createGain();
-        gain.gain.setValueAtTime(0.2, now);
-        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.12);
-
-        noise.connect(filter);
-        filter.connect(gain);
-        gain.connect(ctx.destination);
-
-        noise.start(now);
-        noise.stop(now + 0.15);
-      }
-      break;
-
-      case 'discard': {
-        // “don” 空洞敲擊
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        const filter = ctx.createBiquadFilter();
-
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(140, now); // 低沉的主頻
-        osc.frequency.exponentialRampToValueAtTime(90, now + 0.10); // 微微下滑 → 更像“don”
-
-        filter.type = 'bandpass';
-        filter.frequency.setValueAtTime(150, now); // 中低頻腔體
-        filter.Q.setValueAtTime(6, now);           // 彈性共鳴
-
-        gain.gain.setValueAtTime(0.6, now);        // 強烈起始
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12); // 快速衰減 → “don”
-
-        osc.connect(filter);
-        filter.connect(gain);
-        gain.connect(ctx.destination);
-
-        osc.start(now);
-        osc.stop(now + 0.15);
-      }
-      break;
-
-      case 'merge':
-        // 上升弧線音，帶空間感
-        freqs.forEach((f, i) => {
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          const filter = ctx.createBiquadFilter();
-
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(f, now);
-          osc.frequency.exponentialRampToValueAtTime(f * 1.8, now + 0.3);
-
-          gain.gain.setValueAtTime(0.15 / (i + 1), now);
-          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
-
-          filter.type = 'lowpass';
-          filter.frequency.setValueAtTime(f * 2, now);
-
-          osc.connect(filter);
-          filter.connect(gain);
-          gain.connect(ctx.destination);
-
-          osc.start(now);
-          osc.stop(now + 0.3);
-        });
-        break;
-
-      case 'match':
-      case 'levelup':
-        // 層次感旋律音效
-        freqs.forEach((f, i) => {
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(f, now + i * 0.1);
-          gain.gain.setValueAtTime(0.1, now + i * 0.1);
-          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4 + i * 0.05);
-          osc.connect(gain);
-          gain.connect(ctx.destination);
-          osc.start(now + i * 0.1);
-          osc.stop(now + 0.4 + i * 0.05);
-        });
-        break;
-
-      default:
-        break;
+      case 'move': noise(1600, .12); break;
+      case 'invalid': tone(170, .18, .09, 0, 120, 'triangle'); tone(120, .18, .06); break;
+      case 'discard': tone(140, .15, .25, 0, 90); tone(420, .12, .06, .08, 760); break;
+      case 'merge': SOUND_FREQS.merge.forEach((f, i) => tone(f, .3, .15 / (i + 1), 0, f * 1.8)); noise(3000, .08, .1); break;
+      case 'match': SOUND_FREQS.match.forEach((f, i) => tone(f * 2 ** (Math.min(combo - 1, 12) * 2 / 12), .3, .1, i * .1)); break;
+      case 'levelup': SOUND_FREQS.levelup.forEach((f, i) => tone(f, .4, .12, i * .07)); noise(2200, .3, .12); break;
+      case 'blast': tone(60, .5, .4, 0, 30); noise(900, .4, .3); break;
+      case 'click': tone(1200, .035, .05); tone(2000, .035, .04, .025); break;
     }
-
-  }, [enabled, initAudio]);
-
-  return { playSound };
+  }, [initAudio]);
+  return { playSound, initAudio };
 };

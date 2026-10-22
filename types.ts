@@ -21,6 +21,7 @@ export interface Rune {
   level: RuneLevel;
   isNew?: boolean; // Flag for spawn animation
   justMerged?: boolean; // Flag for merge animation
+  fallRows?: number;
 }
 
 export interface Cell {
@@ -29,25 +30,16 @@ export interface Cell {
   y: number;
   rune: Rune | null;
   isDeleted?: boolean;
+  clearFx?: boolean;
 }
 
 export type GridState = Cell[];
 
-export interface GameState {
-  grid: GridState;
-  score: number;
-  moves: number;
-  combo: number;
-  draggedRuneId: string | null;
-  isProcessing: boolean;
+export interface SwapSignal {
+  cellA: number;
+  cellB: number;
+  seq: number;
+  valid: boolean;
 }
 
-export type Theme = 'runic' | 'elemental';
-
-export interface LeaderboardEntry {
-  date: string;
-  score: number;
-  moves: number;
-}
-
-export type SoundType = 'move' | 'match' | 'merge' | 'discard' | 'invalid' | 'levelup';
+export type SoundType = 'move' | 'match' | 'merge' | 'discard' | 'invalid' | 'levelup' | 'blast' | 'click';

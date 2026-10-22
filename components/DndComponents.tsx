@@ -33,11 +33,13 @@ export const DraggableRune: React.FC<DraggableProps> = ({
       {...attributes}
       onClick={onClick}
       onPointerDown={(e) => {
-        listeners.onPointerDown?.(e); // 保留 dnd-kit 的拖曳啟動
+        listeners?.onPointerDown?.(e); // 保留 dnd-kit 的拖曳啟動
         setPointerDown(true);
       }}
       onPointerUp={() => setPointerDown(false)}
       onPointerLeave={() => setPointerDown(false)}
+      onPointerCancel={() => setPointerDown(false)}
+      onLostPointerCapture={() => setPointerDown(false)}
       className={`${className} touch-none`} // tailwind: touch-none => touch-action: none
       style={{ touchAction: 'none' }}      // 確保瀏覽器原生手勢被禁止
     >
@@ -53,7 +55,7 @@ export const DraggableRune: React.FC<DraggableProps> = ({
 export const DroppableCell: React.FC<any> = ({ id, data, children, className }) => {
   const { setNodeRef } = useDroppable({ id, data });
   return (
-    <div ref={setNodeRef} className={className}>
+    <div ref={setNodeRef} data-cell-id={id} className={className}>
       {children}
     </div>
   );
