@@ -7,7 +7,7 @@ import { useGameLogic } from './hooks/useGameLogic';
 import { GameBoard } from './components/GameBoard';
 import { RuneStatsModal } from './components/RuneStatsModal';
 import { CollectionModal } from './components/CollectionModal';
-import { Sword, HelpCircle, Move, RotateCcw, Shuffle, Maximize2, Minimize2, Trash2, BarChart3, Menu, X, BookOpen, Volume2, VolumeX } from 'lucide-react';
+import { HelpCircle, Move, RotateCcw, Shuffle, Maximize2, Minimize2, Trash2, BarChart3, Menu, X, BookOpen, Volume2, VolumeX } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 
 const App: React.FC = () => {
@@ -104,9 +104,8 @@ const App: React.FC = () => {
           <div className="w-full max-w-[800px] flex justify-between items-center mb-2 mt-20 sm:mt-1 relative z-40">
             {/* 左側 LOGO */}
             <div className="flex items-center gap-3">
-                <div className="p-2 md:p-3 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-500/20">
-                    <Sword className="w-5 h-5 md:w-6 md:h-6" />
-                </div>
+                <img src={`${import.meta.env.BASE_URL}icons/icon-192.png`} alt="" width={48} height={48}
+                    className="w-9 h-9 md:w-12 md:h-12 rounded-2xl shadow-lg shadow-blue-500/20" />
                 <div>
                     <h1 className="font-bold text-lg md:text-xl leading-none tracking-wide bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">RUNIC</h1>
                     <span className="text-[10px] md:text-xs text-slate-500 uppercase tracking-[0.3em] font-bold">Synthesis</span>
