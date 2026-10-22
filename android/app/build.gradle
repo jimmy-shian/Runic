@@ -1,5 +1,22 @@
 apply plugin: 'com.android.application'
 
+def signingProperties = new Properties()
+def signingFile = rootProject.file('keystore.properties')
+if (signingFile.exists()) signingFile.withInputStream { signingProperties.load(it) }
+def signingValue = { name, env -> System.getenv(env) ?: signingProperties.getProperty(name) }
+def releaseStore = signingValue('storeFile', 'ANDROID_KEYSTORE_PATH')
+def releaseStorePassword = signingValue('storePassword', 'ANDROID_KEYSTORE_PASSWORD')
+def releaseAlias = signingValue('keyAlias', 'ANDROID_KEY_ALIAS')
+def releaseKeyPassword = signingValue('keyPassword', 'ANDROID_KEY_PASSWORD')
+def releaseRequested = gradle.startParameter.taskNames.any { it.toLowerCase().contains('release') }
+if (releaseRequested && (!releaseStore || !releaseStorePassword || !releaseAlias || !releaseKeyPassword)) {
+    throw new GradleException('Release signing is required. Configure android/keystore.properties or ANDROID_KEYSTORE_* environment variables.')
+}
+def requestedCode = System.getenv('ANDROID_VERSION_CODE')
+if (releaseRequested && (!requestedCode || !(requestedCode ==~ /[1-9][0-9]*/) || requestedCode.toLong() > 2100000000L)) {
+    throw new GradleException('Set ANDROID_VERSION_CODE to a positive integer <= 2100000000. Use build-apk.bat for local releases.')
+}
+
 android {
     namespace "io.github.jimmyshian.runic"
     compileSdk rootProject.ext.compileSdkVersion
@@ -7,8 +24,8 @@ android {
         applicationId "io.github.jimmyshian.runic"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode requestedCode ? requestedCode.toInteger() : 1
+        versionName System.getenv('ANDROID_VERSION_NAME') ?: '1.1.0'
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,8 +33,19 @@ android {
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        release {
+            if (releaseStore) {
+                storeFile file(releaseStore)
+                storePassword releaseStorePassword
+                keyAlias releaseAlias
+                keyPassword releaseKeyPassword
+            }
+        }
+    }
     buildTypes {
         release {
+            signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

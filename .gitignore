@@ -31,4 +31,9 @@ android/.externalNativeBuild/
 android/local.properties
 android/*.iml
 android/.idea/
+android/keystore.properties
+*.jks
+*.keystore
+releases/
+.release-state.json
 

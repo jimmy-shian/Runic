@@ -1,4 +1,5 @@
 import React from 'react';
+import { RuneImage } from './RunePiece';
 import { motion } from 'framer-motion';
 import { BarChart3, X } from 'lucide-react';
 import { RuneLevel, RuneType } from '../types';
@@ -83,7 +84,7 @@ export const RuneStatsModal: React.FC<RuneStatsModalProps> = ({ isOpen, onClose,
                                             {/* 修改 3: 加上 justify-center 讓圖示置中 */}
                                             <div className="flex items-center justify-center gap-2 md:gap-3">
                                                 <div className={`p-1.5 md:p-2 rounded-lg ${typeConfig.bg.replace('bg-', 'bg-opacity-20 bg-')}`}>
-                                                    <TypeIcon className={`w-4 h-4 md:w-5 md:h-5 ${typeConfig.color}`} />
+                                                    <span className="block w-6 h-6"><RuneImage type={type} level={1} /></span>
                                                 </div>
                                             </div>
                                         </td>

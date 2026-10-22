@@ -1,8 +1,8 @@
 
 import { useState, useCallback, useRef } from 'react';
-import { GridState, Rune, RuneLevel, RuneType } from '../types';
+import { GridState, Rune, RuneLevel, RuneType, SoundType, SwapSignal } from '../types';
 import { GRID_SIZE, RUNE_TYPES, SCORE_TABLE, LV5_BONUS_SCORE } from '../constants';
-import { useSound } from './useSound';
+
 
 const createInitialStats = () => {
   const stats: Record<string, Record<number, number>> = {};
@@ -15,40 +15,16 @@ const createInitialStats = () => {
   return stats as Record<RuneType, Record<RuneLevel, number>>;
 };
 
-const generateRandomRune = (): Rune => ({
+const generateRandomRune = (isNew = false): Rune => ({
   id: crypto.randomUUID(),
   type: RUNE_TYPES[Math.floor(Math.random() * RUNE_TYPES.length)],
   level: RuneLevel.Drop,
-  isNew: true,
+  isNew,
 });
-
-const createInitialGrid = (): GridState => {
-  return Array.from({ length: GRID_SIZE * GRID_SIZE }, (_, i) => ({
-    id: i,
-    x: i % GRID_SIZE,
-    y: Math.floor(i / GRID_SIZE),
-    rune: generateRandomRune(),
-  }));
-};
-
-export const useGameLogic = () => {
-  const [grid, setGrid] = useState<GridState>(createInitialGrid());
-  const [score, setScore] = useState(0);
-  const [moves, setMoves] = useState(0);
-  const [isProcessing, setIsProcessing] = useState(false);
-
-  const [runeStats, setRuneStats] = useState(createInitialStats());
-  const [collection, setCollection] = useState(createInitialStats());
-
-  // 新增：記錄目前哪個格正在被拖曳（用來讓原位看起來是空的）
-  const [draggingFrom, setDraggingFrom] = useState<number | null>(null);
-
-  const processingRef = useRef(false);
-  const { playSound } = useSound();
 
   // BFS based match finding for strict Orthogonal connectivity
   // 改良後的 Match-3 邏輯：嚴格檢查橫向與直向連線
-  const findMatches = (currentGrid: GridState) => {
+export const findMatches = (currentGrid: GridState) => {
     const matchedIndices = new Set<number>();
     const clusters: { type: RuneType; level: RuneLevel; indices: number[] }[] = [];
 
@@ -154,18 +130,51 @@ export const useGameLogic = () => {
     return clusters;
   };
 
+
+export const createInitialGrid = (): GridState => {
+  const grid: GridState = [];
+  for (let i = 0; i < GRID_SIZE * GRID_SIZE; i++) {
+    const x = i % GRID_SIZE;
+    const y = Math.floor(i / GRID_SIZE);
+    const forbidden = new Set<RuneType>();
+    if (x >= 2 && grid[i-1].rune.type === grid[i-2].rune.type) forbidden.add(grid[i-1].rune.type);
+    if (y >= 2 && grid[i-GRID_SIZE].rune.type === grid[i-2*GRID_SIZE].rune.type) forbidden.add(grid[i-GRID_SIZE].rune.type);
+    const available = RUNE_TYPES.filter(type => !forbidden.has(type));
+    grid.push({ id: i, x, y, rune: { ...generateRandomRune(), type: available[Math.floor(Math.random()*available.length)] } });
+  }
+  return grid;
+};
+
+export const useGameLogic = (playSound: (type: SoundType, combo?: number) => void) => {
+  const [grid, setGrid] = useState<GridState>(createInitialGrid);
+  const [score, setScore] = useState(0);
+  const [moves, setMoves] = useState(0);
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const [runeStats, setRuneStats] = useState(createInitialStats());
+  const [collection, setCollection] = useState(createInitialStats());
+
+  // 保留拖曳 API；目前 GameBoard 自行管理拖曳狀態。
+  const [draggingFrom, setDraggingFrom] = useState<number | null>(null);
+
+  const processingRef = useRef(false);
+  const [swapSignal, setSwapSignal] = useState<SwapSignal | null>(null);
+
   const resolveBoard = useCallback(async (startGrid: GridState) => {
     processingRef.current = true;
     setIsProcessing(true);
 
     let activeGrid = [...startGrid];
     let stability = false;
+    let combo = 0;
+    try {
     const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
     while (!stability) {
       // 1. Gravity Loop (Priority)
       let gridAfterGravity = [...activeGrid];
       let gravityApplied = false;
+      const spawned: Rune[] = [];
       for (let col = 0; col < GRID_SIZE; col++) {
         const runesInColumn = [];
         for (let row = 0; row < GRID_SIZE; row++) {
@@ -174,30 +183,37 @@ export const useGameLogic = () => {
         }
         const emptyCount = GRID_SIZE - runesInColumn.length;
 
+        if (!emptyCount) continue;
+        gravityApplied = true;
+
         // Refill logic (Phase C)
         const newRunes = [];
         for(let k=0; k<emptyCount; k++){
-             const r = generateRandomRune();
-             // 統計掉落的 Lv1
-             setCollection(prev => (prev && {
-                 ...prev,
-                 [r.type]: { ...prev[r.type], [1]: prev[r.type][1] + 1 }
-             }) || prev);
-             newRunes.push({ ...r, isNew: true, id: crypto.randomUUID() });
+             const r = generateRandomRune(true);
+             spawned.push(r);
+             newRunes.push(r);
         }
 
         const finalColumn = [...newRunes, ...runesInColumn];
         for (let row = 0; row < GRID_SIZE; row++) {
           const idx = row * GRID_SIZE + col;
           const rune = finalColumn[row];
-          gridAfterGravity[idx] = { ...gridAfterGravity[idx], rune: rune ? { ...rune, id: rune.id, isNew: rune.isNew } : null };
-          gravityApplied = true;
+          const previousRow = rune?.isNew ? -1 : Math.floor(activeGrid.findIndex(cell => cell.rune?.id === rune?.id) / GRID_SIZE);
+          gridAfterGravity[idx] = { ...gridAfterGravity[idx], rune: rune ? { ...rune, fallRows: row - previousRow } : null };
+
         }
       }
+      if (spawned.length) setCollection(prev => {
+        const next = { ...prev };
+        RUNE_TYPES.forEach(type => next[type] = { ...prev[type] });
+        spawned.forEach(rune => next[rune.type][1]++);
+        return next;
+      });
       if (gravityApplied) {
         setGrid(gridAfterGravity);
         activeGrid = gridAfterGravity;
-        await delay(200);
+        await delay(220);
+        activeGrid = activeGrid.map(cell => ({ ...cell, rune: cell.rune ? { ...cell.rune, isNew: false, fallRows: 0 } : null }));
       }
 
       // 2. Match Loop
@@ -207,7 +223,7 @@ export const useGameLogic = () => {
         break;
       }
 
-      playSound('match');
+      playSound('match', ++combo);
       await delay(250);
 
       let gridWithMerges = [...activeGrid];
@@ -322,10 +338,16 @@ export const useGameLogic = () => {
 
       // 音效判斷
       if (gainedScore > 0) {
-          if (hasLv5Blast) playSound('levelup'); // Use heavy sound for blast
+          if (hasLv5Blast) playSound('blast');
           else playSound(hasHighLevelUpgrade ? 'levelup' : 'merge');
       }
 
+      // Keep the old runes mounted until their exit animation completes.
+      setGrid(activeGrid.map((cell, index) => ({
+        ...cell,
+        clearFx: !!cell.rune && cell.rune.id !== gridWithMerges[index].rune?.id,
+      })));
+      await delay(320);
       setGrid([...gridWithMerges]);
       activeGrid = gridWithMerges;
       await delay(300);
@@ -333,12 +355,14 @@ export const useGameLogic = () => {
 
     const cleanGrid = activeGrid.map(cell => ({
       ...cell,
-      rune: cell.rune ? { ...cell.rune, justMerged: false, isNew: false } : null,
+      rune: cell.rune ? { ...cell.rune, justMerged: false, isNew: false, fallRows: 0 } : null,
     }));
     setGrid(cleanGrid);
-    processingRef.current = false;
-    setIsProcessing(false);
-  }, [score, playSound]);
+    } finally {
+      processingRef.current = false;
+      setIsProcessing(false);
+    }
+  }, [playSound]);
 
   const handleInteraction = useCallback((fromId: number, toId: number) => {
     if (processingRef.current) return;
@@ -347,25 +371,19 @@ export const useGameLogic = () => {
     const tX = toId % GRID_SIZE;
     const tY = Math.floor(toId / GRID_SIZE);
     if (Math.abs(fX - tX) + Math.abs(fY - tY) !== 1) return;
+    if (!grid[fromId]?.rune || !grid[toId]?.rune) return;
+    const newGrid = grid.map(cell => cell.id === fromId
+      ? { ...cell, rune: grid[toId].rune }
+      : cell.id === toId ? { ...cell, rune: grid[fromId].rune } : cell);
+    // Every adjacent swap is a move, even when it creates no match.
+    setSwapSignal(previous => ({ cellA: fromId, cellB: toId, valid: true, seq: (previous?.seq ?? 0) + 1 }));
+    processingRef.current = true;
+    setIsProcessing(true);
     playSound('move');
     setMoves(prev => prev + 1);
-    const newGrid = [...grid];
-    const temp = newGrid[fromId].rune;
-    newGrid[fromId].rune = newGrid[toId].rune;
-    newGrid[toId].rune = temp;
     setGrid(newGrid);
-    resolveBoard(newGrid);
+    setTimeout(() => { void resolveBoard(newGrid); }, 140);
   }, [grid, resolveBoard, playSound]);
-
-  //定義角落格子
-  const isCorner = (id: number) => {
-    const x = id % GRID_SIZE;
-    const y = Math.floor(id / GRID_SIZE);
-    return (x === 0 && y === 0) || // 左上
-          (x === 0 && y === GRID_SIZE - 1) || // 左下
-          (x === GRID_SIZE - 1 && y === 0) || // 右上
-          (x === GRID_SIZE - 1 && y === GRID_SIZE - 1); // 右下
-  };
 
   // Helper: 依 index 取得內部鄰格（不會超界）
   const getInnerNeighbors = (id: number) => {
@@ -452,6 +470,8 @@ export const useGameLogic = () => {
 
   const reshuffleBoard = useCallback(() => {
     if (processingRef.current) return;
+    processingRef.current = true;
+    setIsProcessing(true);
     playSound('move');
     const currentRunes = grid.map(cell => cell.rune).filter((r): r is Rune => r !== null);
     for (let i = currentRunes.length - 1; i > 0; i--) {
@@ -459,14 +479,15 @@ export const useGameLogic = () => {
         [currentRunes[i], currentRunes[j]] = [currentRunes[j], currentRunes[i]];
     }
     while (currentRunes.length < GRID_SIZE * GRID_SIZE) currentRunes.push(generateRandomRune());
-    const newGrid = grid.map((cell, index) => ({ ...cell, rune: currentRunes[index] }));
+    const newGrid = grid.map((cell, index) => ({ ...cell, rune: { ...currentRunes[index], isNew: false, justMerged: false } }));
     setGrid(newGrid);
     setTimeout(() => resolveBoard(newGrid), 400);
   }, [grid, playSound, resolveBoard]);
 
   const resetGame = useCallback(() => {
     if(processingRef.current) return;
-    playSound('levelup');
+    playSound('click');
+    setSwapSignal(null);
     setScore(0);
     setMoves(0);
     setRuneStats(createInitialStats());
@@ -476,6 +497,7 @@ export const useGameLogic = () => {
 
   return {
     grid,
+    swapSignal,
     score,
     moves,
     runeStats,
@@ -486,7 +508,7 @@ export const useGameLogic = () => {
     reshuffleBoard,
     resetGame,
 
-    // 新增對外 API（UI 端使用）
+    // 保留對外 API，供未來接入；目前 UI 使用自己的拖曳狀態。
     draggingFrom,
     handleDragStart,
     handleDragEnd,

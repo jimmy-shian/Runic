@@ -1,0 +1,91 @@
+name: Android release
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+concurrency:
+  group: android-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build:devlocal
+  release:
+    if: github.event_name != 'pull_request'
+    needs: validate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      ANDROID_KEYSTORE_PATH: ${{ github.workspace }}/android/release-key.jks
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      ANDROID_VERSION_NAME: '1.1.0'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: android-actions/setup-android@v3
+      - name: Install Android SDK
+        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+      - run: npm ci
+      - name: Set shared release version
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: echo "ANDROID_VERSION_CODE=$(node scripts/release-version.mjs)" >> "$GITHUB_ENV"
+      - name: Restore signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        shell: bash
+        run: |
+          test -n "$KEYSTORE_BASE64" && test -n "$ANDROID_KEYSTORE_PASSWORD" && test -n "$ANDROID_KEY_ALIAS" && test -n "$ANDROID_KEY_PASSWORD" || { echo 'Missing Android signing secrets'; exit 1; }
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$ANDROID_KEYSTORE_PATH"
+          chmod 600 "$ANDROID_KEYSTORE_PATH"
+      - run: npm run build:devlocal
+      - run: npx cap sync android
+      - name: Build signed APK
+        working-directory: android
+        run: bash gradlew --no-daemon assembleRelease
+      - name: Verify and package
+        shell: bash
+        run: |
+          mkdir -p releases
+          apk="Runic-${ANDROID_VERSION_NAME}-${ANDROID_VERSION_CODE}-release.apk"
+          cp android/app/build/outputs/apk/release/app-release.apk "releases/$apk"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "releases/$apk"
+          cd releases
+          sha256sum "$apk" > "$apk.sha256"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Runic-release-${{ env.ANDROID_VERSION_CODE }}
+          path: releases/*
+          if-no-files-found: error
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "apk-${ANDROID_VERSION_CODE}" releases/* --target "$GITHUB_SHA" --title "Runic ${ANDROID_VERSION_NAME} (${ANDROID_VERSION_CODE})" --generate-notes
+      - name: Remove signing key
+        if: always()
+        run: rm -f -- "$ANDROID_KEYSTORE_PATH"

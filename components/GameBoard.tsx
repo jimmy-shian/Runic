@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
     DndContext, 
     DragOverlay, 
@@ -9,11 +9,9 @@ import {
     DragStartEvent, 
     DragEndEvent, 
     DragOverEvent, 
-    defaultDropAnimationSideEffects, 
-    DropAnimation 
 } from '@dnd-kit/core';
-import { GridState, Rune } from '../types';
-import { RunePiece } from './RunePiece';
+import { GridState, Rune, SwapSignal } from '../types';
+import { RunePiece, RuneImage } from './RunePiece';
 import { GRID_SIZE } from '../constants';
 import { X } from 'lucide-react';
 import { DraggableRune, DroppableCell } from './DndComponents';
@@ -24,6 +22,7 @@ interface GameBoardProps {
   onInteraction: (fromId: number, toId: number) => void;
   onDiscard: (fromId: number) => void;
   isFullscreen: boolean;
+  swapSignal?: SwapSignal | null;
 }
 
 export const GameBoard: React.FC<GameBoardProps> = ({
@@ -31,8 +30,39 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   isProcessing,
   onInteraction,
   onDiscard,
-  isFullscreen
+  isFullscreen,
+  swapSignal,
 }) => {
+  const boardRef = useRef<HTMLDivElement>(null);
+  const [cellSize, setCellSize] = useState({ width: 64, height: 64 });
+  useEffect(() => {
+    const board = boardRef.current;
+    if (!board) return;
+    const observer = new ResizeObserver(() => {
+      const rect = board.querySelector('[data-cell-id="0"]')?.getBoundingClientRect();
+      if (rect) setCellSize({ width: rect.width, height: rect.height });
+    });
+    observer.observe(board);
+    return () => observer.disconnect();
+  }, []);
+  useEffect(() => {
+    if (!swapSignal) return;
+    const animations: Animation[] = [];
+    [swapSignal.cellA, swapSignal.cellB].forEach(id => {
+      const cell = boardRef.current?.querySelector<HTMLElement>(`[data-cell-id="${id}"]`);
+      if (!cell) return;
+      const other = boardRef.current?.querySelector<HTMLElement>(`[data-cell-id="${id === swapSignal.cellA ? swapSignal.cellB : swapSignal.cellA}"]`);
+      const target = swapSignal.valid ? cell.querySelector<HTMLElement>('.rune-position') : cell;
+      if (!target || !other) return;
+      const here = cell.getBoundingClientRect();
+      const there = other.getBoundingClientRect();
+      const frames = swapSignal.valid
+        ? [{ transform: `translate(${there.x - here.x}px, ${there.y - here.y}px)` }, { transform: 'translate(0, 0)' }]
+        : [{ transform: 'translateX(0)', boxShadow: '0 0 0 2px #ef4444' }, { transform: 'translateX(-5px)' }, { transform: 'translateX(5px)' }, { transform: 'translateX(0)', boxShadow: 'none' }];
+      animations.push(target.animate(frames, { duration: swapSignal.valid ? 140 : 300, easing: 'ease-out' }));
+    });
+    return () => animations.forEach(animation => animation.cancel());
+  }, [swapSignal]);
   // --- State ---
   const [activeId, setActiveId] = useState<string | null>(null); // 拖曳中的 ID
   const [overId, setOverId] = useState<string | null>(null);     // 懸停的 ID
@@ -65,6 +95,9 @@ export const GameBoard: React.FC<GameBoardProps> = ({
       // 如果點擊已選取的 -> 取消；否則 -> 選取
       if (selectedId === id) {
           setSelectedId(null);
+      } else if (selectedId !== null && isAdjacent(selectedId, id)) {
+          onInteraction(selectedId, id);
+          setSelectedId(null);
       } else {
           setSelectedId(id);
       }
@@ -92,30 +125,15 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   const getAutoDiscardZone = (dragId: number, delta: { x: number, y: number }): string | null => {
     const dX = dragId % GRID_SIZE;
     const dY = Math.floor(dragId / GRID_SIZE);
-    
-    // Top-Left Corner
-    if (dX === 0 && dY === 0) {
-        return (Math.abs(delta.x) > Math.abs(delta.y) && delta.x < 0) ? `left-${dY}` : `top-${dX + 1}`;
-    }
-    // Top-Right Corner
-    if (dX === GRID_SIZE - 1 && dY === 0) {
-        return (Math.abs(delta.x) > Math.abs(delta.y) && delta.x > 0) ? `right-${dY}` : `top-${dX + 1}`;
-    }
-    // Bottom-Left Corner
-    if (dX === 0 && dY === GRID_SIZE - 1) {
-        return (Math.abs(delta.x) > Math.abs(delta.y) && delta.x < 0) ? `left-${dY}` : `bottom-${dX + 1}`;
-    }
-    // Bottom-Right Corner
-    if (dX === GRID_SIZE - 1 && dY === GRID_SIZE - 1) {
-        return (Math.abs(delta.x) > Math.abs(delta.y) && delta.x > 0) ? `right-${dY}` : `bottom-${dX + 1}`;
-    }
-
-    // Normal Edges
-    if (dY === 0) return `top-${dX + 1}`;
-    if (dY === GRID_SIZE - 1) return `bottom-${dX + 1}`;
-    if (dX === 0) return `left-${dY}`;
-    if (dX === GRID_SIZE - 1) return `right-${dY}`;
-    return null;
+    // Only an outward drag beyond half a cell can enter the discard zone.
+    // A cancelled drag or a click near an edge must never discard a rune.
+    const outward = [
+      dX === 0 && delta.x < -cellSize.width / 2 ? { id: `left-${dY}`, distance: -delta.x } : null,
+      dX === GRID_SIZE - 1 && delta.x > cellSize.width / 2 ? { id: `right-${dY}`, distance: delta.x } : null,
+      dY === 0 && delta.y < -cellSize.height / 2 ? { id: `top-${dX + 1}`, distance: -delta.y } : null,
+      dY === GRID_SIZE - 1 && delta.y > cellSize.height / 2 ? { id: `bottom-${dX + 1}`, distance: delta.y } : null,
+    ].filter((zone): zone is { id: string; distance: number } => zone !== null);
+    return outward.sort((a, b) => b.distance - a.distance)[0]?.id ?? null;
   };
 
   // 檢查某個 void zone 是否為該 cell 的合法鄰居
@@ -135,6 +153,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
 
   const handleDragStart = (event: DragStartEvent) => {
       if (isProcessing) return;
+      if ('vibrate' in navigator) navigator.vibrate(8);
       const { active } = event;
       const runeData = active.data.current as Rune;
       setActiveId(active.id as string);
@@ -203,14 +222,6 @@ export const GameBoard: React.FC<GameBoardProps> = ({
       setActiveVoidId(null);
   };
 
-  const dropAnimation: DropAnimation = {
-    sideEffects: defaultDropAnimationSideEffects({
-      styles: {
-        active: { opacity: '0.4' },
-      },
-    }),
-  };
-
   // --- Render ---
 
     const VoidSlot = ({ id, isCorner = false }: { id: string, isCorner?: boolean }) => {
@@ -247,10 +258,11 @@ export const GameBoard: React.FC<GameBoardProps> = ({
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
+        onDragCancel={() => { setActiveId(null); setOverId(null); setActiveRune(null); setActiveVoidId(null); }}
     >
         <div className={`relative flex items-center justify-center ${isFullscreen ? 'h-full w-full' : ''}`}>
         
-        <div 
+        <div ref={boardRef}
             className="grid rounded-2xl bg-slate-900 shadow-2xl transition-colors duration-300 touch-none p-2 gap-1 md:p-4 md:gap-1.5"
             style={{
                 // 調整網格比例：兩側 0.5fr，中間符文 1fr
@@ -284,14 +296,8 @@ export const GameBoard: React.FC<GameBoardProps> = ({
                         let displayRune = cell.rune;
                         const isActiveSource = activeId === cell.id.toString();
                         const isOverTarget = overId === cell.id.toString();
+                        const previewRune = isActiveSource && overId !== null ? grid[Number(overId)]?.rune : null;
 
-                        if (activeId && overId && !overId.startsWith('void-')) {
-                            const activeIdx = parseInt(activeId);
-                            const overIdx = parseInt(overId);
-                            if (cell.id === activeIdx) displayRune = grid[overIdx]?.rune;
-                            else if (cell.id === overIdx) displayRune = grid[activeIdx]?.rune;
-                        }
-                        
                         const isAboutToDelete = isActiveSource && activeVoidId !== null;
                         const isSelected = selectedId === cell.id;
                         
@@ -310,24 +316,32 @@ export const GameBoard: React.FC<GameBoardProps> = ({
                                     flex items-center justify-center
                                     bg-slate-800/50 border border-slate-700/30
                                     ${isOverTarget ? 'bg-slate-700 ring-1 ring-white/20' : ''}
+                                    ${isSelected ? 'z-40 ring-2 ring-white' : ''}
                                     ${isProcessing ? 'cursor-wait' : 'cursor-grab active:cursor-grabbing'}
                                 `}
                             >
+                                {previewRune && <div key={`preview-${cell.id}-${overId}`} className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
+                                    <div style={{ width: previewRune.level === 3 ? '72%' : previewRune.level === 4 ? '70%' : previewRune.level === 5 ? '95%' : '80%', height: previewRune.level === 3 ? '72%' : previewRune.level === 4 ? '85%' : previewRune.level === 5 ? '95%' : '80%' }}>
+                                        <RuneImage type={previewRune.type} level={previewRune.level} />
+                                    </div>
+                                </div>}
                                 {displayRune && (
                                     <DraggableRune 
                                         id={cell.id.toString()} 
                                         data={displayRune}
                                         disabled={isProcessing}
-                                        className="w-full h-full"
+                                        className={`w-full h-full ${isOverTarget && activeRune ? 'opacity-0' : ''}`}
                                         onClick={() => handleClick(cell.id)}
                                     >
                                          <RunePiece 
                                             rune={displayRune} 
                                             cellId={cell.id}
+                                            cellHeight={cellSize.height}
                                             isAboutToDelete={isAboutToDelete}
                                             isSelected={isSelected}
                                             isMatchHighlighted={!!isMatch}
                                             isDeleted={cell.isDeleted}
+                                            isClearing={cell.clearFx}
                                          />
                                     </DraggableRune>
                                 )}
@@ -345,17 +359,17 @@ export const GameBoard: React.FC<GameBoardProps> = ({
             ))}
         </div>
 
-        <DragOverlay dropAnimation={dropAnimation}>
+        <DragOverlay dropAnimation={null}>
             {activeRune ? (
                 <div className="w-full h-full flex items-center justify-center">
-                    <div className="w-[80px] h-[80px]">
+                    <div style={{ width: cellSize.width, height: cellSize.height }}>
                         <RunePiece 
                         rune={activeRune} 
                         cellId={-1}
                         isSelected={false}
                         isMatchHighlighted={false}
                         isAboutToDelete={activeVoidId !== null}
-                        isDragging={true} 
+                        isDragging={false}
                         />
                     </div>
                 </div>

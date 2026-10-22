@@ -1,13 +1,31 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { preloadRuneImages } from './runeAssets';
+import { RuneImage } from './components/RunePiece';
+import { RuneType } from './types';
+import { useSound } from './hooks/useSound';
 import { useGameLogic } from './hooks/useGameLogic';
 import { GameBoard } from './components/GameBoard';
 import { RuneStatsModal } from './components/RuneStatsModal';
 import { CollectionModal } from './components/CollectionModal';
-import { Sword, HelpCircle, Move, RotateCcw, Shuffle, Maximize2, Minimize2, Trash2, BarChart3, Menu, X, BookOpen } from 'lucide-react';
+import { Sword, HelpCircle, Move, RotateCcw, Shuffle, Maximize2, Minimize2, Trash2, BarChart3, Menu, X, BookOpen, Volume2, VolumeX } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 
 const App: React.FC = () => {
-  const { grid, score, moves, isProcessing, runeStats, collection, handleInteraction, handleDiscard, reshuffleBoard, resetGame } = useGameLogic();
+  const [soundEnabled, setSoundEnabled] = useState(() => {
+    try { return localStorage.getItem('runic.soundEnabled') !== 'false'; } catch { return true; }
+  });
+  const { playSound, initAudio } = useSound(soundEnabled);
+  const [assetProgress, setAssetProgress] = useState({ loaded: 0, failed: 0, total: 25 });
+  const assetsReady = assetProgress.loaded + assetProgress.failed === assetProgress.total;
+  useEffect(() => preloadRuneImages((loaded, total, failed) => setAssetProgress({ loaded, total, failed })), []);
+  useEffect(() => {
+    try { localStorage.setItem('runic.soundEnabled', String(soundEnabled)); } catch {}
+  }, [soundEnabled]);
+  useEffect(() => {
+    window.addEventListener('pointerdown', initAudio, { once: true });
+    return () => window.removeEventListener('pointerdown', initAudio);
+  }, [initAudio]);
+  const { grid, swapSignal, score, moves, isProcessing, runeStats, collection, handleInteraction, handleDiscard, reshuffleBoard, resetGame } = useGameLogic(playSound);
   const [showHelp, setShowHelp] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const [showCollection, setShowCollection] = useState(false);
@@ -69,6 +87,12 @@ const App: React.FC = () => {
             <Maximize2 className="w-5 h-5" />
             {isMobile && <span className="text-sm font-bold">全螢幕</span>}
         </button>
+        <button title={soundEnabled ? '關閉音效' : '開啟音效'} aria-pressed={soundEnabled}
+            onClick={() => setSoundEnabled(value => !value)}
+            className="p-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 transition border border-slate-700 flex items-center justify-center gap-2">
+            {soundEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
+            {isMobile && <span className="text-sm font-bold">音效</span>}
+        </button>
     </>
   );
 
@@ -90,7 +114,7 @@ const App: React.FC = () => {
             </div>
             
             {/* 右側控制區 */}
-            <div className="hidden md:flex gap-2">
+            <div className="hidden md:flex gap-2" onClickCapture={() => playSound('click')}>
                 <ActionButtons />
             </div>
 
@@ -118,6 +142,7 @@ const App: React.FC = () => {
                                 animate={{ opacity: 1, y: 0, scale: 1 }}
                                 exit={{ opacity: 0, y: -10, scale: 0.95 }}
                                 className="absolute right-0 top-full mt-2 w-48 bg-slate-900/95 border border-slate-700 rounded-2xl shadow-2xl p-3 flex flex-col gap-2 z-50 backdrop-blur-md origin-top-right"
+                                onClickCapture={() => playSound('click')}
                             >
                                 <ActionButtons isMobile={true} />
                             </motion.div>
@@ -150,13 +175,18 @@ const App: React.FC = () => {
         </button>
       )}
 
-      <GameBoard 
+      {assetsReady ? <GameBoard
           grid={grid} 
+          swapSignal={swapSignal}
           isProcessing={isProcessing}
           onInteraction={handleInteraction}
           onDiscard={handleDiscard}
           isFullscreen={isFullscreen}
-      />
+      /> : <div role="status" aria-live="polite" className="flex flex-col items-center gap-4 p-12">
+        <div className="w-24 h-24 animate-pulse"><RuneImage type={RuneType.Lightning} level={5} /></div>
+        <p>載入符文 {assetProgress.loaded + assetProgress.failed}/25</p>
+        <progress aria-label="符文載入進度" max={25} value={assetProgress.loaded + assetProgress.failed} />
+      </div>}
 
       {!isFullscreen && (
         <div className="mt-4 md:mt-8 text-center opacity-40 text-[10px] md:text-xs max-w-sm text-slate-300 leading-relaxed">

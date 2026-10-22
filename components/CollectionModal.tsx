@@ -1,4 +1,5 @@
 import React from 'react';
+import { RuneImage } from './RunePiece';
 import { motion } from 'framer-motion';
 import { BookOpen, X } from 'lucide-react';
 import { RuneLevel, RuneType } from '../types';
@@ -76,7 +77,7 @@ export const CollectionModal: React.FC<CollectionModalProps> = ({ isOpen, onClos
                                             {/* 修改 3: 內容置中 */}
                                             <div className="flex items-center justify-center">
                                                 <div className={`p-1.5 md:p-2 rounded-lg ${typeConfig.bg.replace('bg-', 'bg-opacity-20 bg-')}`}>
-                                                    <TypeIcon className={`w-5 h-5 md:w-6 md:h-6 ${typeConfig.color}`} />
+                                                    <span className="block w-6 h-6"><RuneImage type={type} level={1} /></span>
                                                 </div>
                                             </div>
                                         </td>
@@ -96,11 +97,7 @@ export const CollectionModal: React.FC<CollectionModalProps> = ({ isOpen, onClos
                                                                 : 'bg-slate-800/50 border-slate-700 grayscale opacity-40'
                                                             }
                                                         `}>
-                                                            <LevelIcon className={`
-                                                                w-5 h-5 md:w-6 md:h-6 transition-all duration-300
-                                                                ${isUnlocked ? typeConfig.color : 'text-slate-600'}
-                                                                ${isUnlocked && lvl === 5 ? 'animate-pulse drop-shadow-[0_0_5px_currentColor]' : ''}
-                                                            `} />
+                                                            <RuneImage type={type} level={lvl as RuneLevel} />
                                                         </div>
                                                         
                                                         {/* Count Badge */}
