@@ -9,6 +9,11 @@ const fragmentDirections = Array.from({ length: 8 }, (_, index) => ({
   y: Math.sin(index * Math.PI / 4) * 38,
 }));
 
+export const getRuneVisualSize = (level: RuneLevel) => ({
+  width: level === 1 ? '85%' : level === 2 ? '100%' : level === 3 ? '72%' : level === 4 ? '70%' : '95%',
+  height: level === 1 ? '85%' : level === 2 ? '100%' : level === 3 ? '72%' : level === 4 ? '85%' : '95%',
+});
+
 export const RuneImage: React.FC<{ type: RuneType; level: RuneLevel; className?: string }> = ({ type, level, className = '' }) => {
   const url = getRuneImageUrl(type, level);
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
@@ -173,7 +178,7 @@ export const RunePiece: React.FC<RunePieceProps> = ({
   };
 
   const renderShape = () => (
-    <div className={`${baseClass} ${isLv1 || isLv2 ? 'w-[80%] h-[80%]' : isLv3 ? 'w-[72%] h-[72%]' : isLv4 ? 'w-[70%] h-[85%]' : 'w-[95%] h-[95%]'} ${isLv1 ? shapeEffectLv1 : shapeEffect}`}>
+    <div style={getRuneVisualSize(rune.level)} className={`${baseClass} ${isLv1 ? shapeEffectLv1 : shapeEffect}`}>
       <RuneImage type={rune.type} level={rune.level} />
     </div>
   );
