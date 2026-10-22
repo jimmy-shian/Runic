@@ -25,7 +25,7 @@ const App: React.FC = () => {
     window.addEventListener('pointerdown', initAudio, { once: true });
     return () => window.removeEventListener('pointerdown', initAudio);
   }, [initAudio]);
-  const { grid, swapSignal, score, moves, isProcessing, runeStats, collection, handleInteraction, handleDiscard, reshuffleBoard, resetGame } = useGameLogic(playSound);
+  const { grid, swapSignal, swappingPair, score, moves, isProcessing, runeStats, collection, handleInteraction, handleDiscard, reshuffleBoard, resetGame } = useGameLogic(playSound);
   const [showHelp, setShowHelp] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const [showCollection, setShowCollection] = useState(false);
@@ -177,6 +177,7 @@ const App: React.FC = () => {
       {assetsReady ? <GameBoard
           grid={grid} 
           swapSignal={swapSignal}
+          swappingPair={swappingPair}
           isProcessing={isProcessing}
           onInteraction={handleInteraction}
           onDiscard={handleDiscard}

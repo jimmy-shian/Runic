@@ -1,9 +1,8 @@
 name: Android release
 on:
   push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+    tags:
+      - 'v*'
   workflow_dispatch:
 
 permissions:
@@ -26,7 +25,6 @@ jobs:
       - run: npm test
       - run: npm run build:devlocal
   release:
-    if: github.event_name != 'pull_request'
     needs: validate
     runs-on: ubuntu-latest
     permissions:
@@ -36,7 +34,7 @@ jobs:
       ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
       ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
       ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-      ANDROID_VERSION_NAME: '1.1.0'
+      ANDROID_VERSION_NAME: '1.1.1'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

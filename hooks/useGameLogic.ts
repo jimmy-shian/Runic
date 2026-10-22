@@ -159,6 +159,7 @@ export const useGameLogic = (playSound: (type: SoundType, combo?: number) => voi
 
   const processingRef = useRef(false);
   const [swapSignal, setSwapSignal] = useState<SwapSignal | null>(null);
+  const [swappingPair, setSwappingPair] = useState<{ cellA: number; cellB: number } | null>(null);
 
   const resolveBoard = useCallback(async (startGrid: GridState) => {
     processingRef.current = true;
@@ -372,17 +373,21 @@ export const useGameLogic = (playSound: (type: SoundType, combo?: number) => voi
     const tY = Math.floor(toId / GRID_SIZE);
     if (Math.abs(fX - tX) + Math.abs(fY - tY) !== 1) return;
     if (!grid[fromId]?.rune || !grid[toId]?.rune) return;
+
     const newGrid = grid.map(cell => cell.id === fromId
       ? { ...cell, rune: grid[toId].rune }
       : cell.id === toId ? { ...cell, rune: grid[fromId].rune } : cell);
-    // Every adjacent swap is a move, even when it creates no match.
-    setSwapSignal(previous => ({ cellA: fromId, cellB: toId, valid: true, seq: (previous?.seq ?? 0) + 1 }));
+
     processingRef.current = true;
     setIsProcessing(true);
     playSound('move');
     setMoves(prev => prev + 1);
     setGrid(newGrid);
-    setTimeout(() => { void resolveBoard(newGrid); }, 140);
+    setSwapSignal(previous => ({ cellA: fromId, cellB: toId, valid: true, seq: (previous?.seq ?? 0) + 1 }));
+
+    setTimeout(() => {
+      void resolveBoard(newGrid);
+    }, 140);
   }, [grid, resolveBoard, playSound]);
 
   // Helper: 依 index 取得內部鄰格（不會超界）
@@ -488,6 +493,7 @@ export const useGameLogic = (playSound: (type: SoundType, combo?: number) => voi
     if(processingRef.current) return;
     playSound('click');
     setSwapSignal(null);
+    setSwappingPair(null);
     setScore(0);
     setMoves(0);
     setRuneStats(createInitialStats());
@@ -498,6 +504,7 @@ export const useGameLogic = (playSound: (type: SoundType, combo?: number) => voi
   return {
     grid,
     swapSignal,
+    swappingPair,
     score,
     moves,
     runeStats,

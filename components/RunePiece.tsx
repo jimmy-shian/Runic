@@ -9,20 +9,47 @@ const fragmentDirections = Array.from({ length: 8 }, (_, index) => ({
   y: Math.sin(index * Math.PI / 4) * 38,
 }));
 
-export const getRuneVisualSize = (level: RuneLevel) => ({
-  width: level === 1 ? '85%' : level === 2 ? '100%' : level === 3 ? '72%' : level === 4 ? '70%' : '95%',
-  height: level === 1 ? '85%' : level === 2 ? '100%' : level === 3 ? '72%' : level === 4 ? '85%' : '95%',
-});
-
+export const getRuneVisualSize = (level: RuneLevel) => {
+  switch (level) {
+    case RuneLevel.Drop:    // Lv1: 基礎元素，小巧精緻
+      return { width: '66%', height: '66%' };
+    case RuneLevel.Gem:     // Lv2: 成長結晶
+      return { width: '76%', height: '76%' };
+    case RuneLevel.Crystal: // Lv3: 魔法典籍 (Tome)，厚重大氣，顯著大於低階晶石
+      return { width: '86%', height: '86%' };
+    case RuneLevel.Tome:    // Lv4: 元素神劍 (Sword)
+      return { width: '92%', height: '92%' };
+    case RuneLevel.Blade:   // Lv5: 終極型態 (Final)
+      return { width: '98%', height: '98%' };
+    default:
+      return { width: '80%', height: '80%' };
+  }
+};
 export const RuneImage: React.FC<{ type: RuneType; level: RuneLevel; className?: string }> = ({ type, level, className = '' }) => {
   const url = getRuneImageUrl(type, level);
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
   const Icon = level === RuneLevel.Blade ? LEVEL_CONFIG[level].icon : TYPE_CONFIG[type].icon;
-  return failedUrl === url
-    ? <Icon aria-label={`${type} Lv.${level}`} className={`w-full h-full ${TYPE_CONFIG[type].color} ${className}`} />
-    : <img src={url} alt={`${type} Lv.${level}`} loading="eager" decoding="async" draggable={false}
-        onError={() => setFailedUrl(url)} className={`w-full h-full object-contain ${className}`}
-        style={{ filter: `drop-shadow(0 0 12px ${TYPE_CONFIG[type].solidColor}cc)` }} />;
+  if (failedUrl === url) {
+    return <Icon aria-label={`${type} Lv.${level}`} className={`w-full h-full ${TYPE_CONFIG[type].color} ${className}`} />;
+  }
+
+  // 「光/大地」符文透過程式濾鏡微調：再黃一點、呈現純淨明亮金黃質感
+  const isEarth = type === RuneType.Earth;
+  const earthFilter = isEarth ? 'hue-rotate(18deg) saturate(1.18) brightness(1.12) ' : '';
+  const dropShadow = `drop-shadow(0 0 12px ${TYPE_CONFIG[type].solidColor}cc)`;
+
+  return (
+    <img
+      src={url}
+      alt={`${type} Lv.${level}`}
+      loading="eager"
+      decoding="async"
+      draggable={false}
+      onError={() => setFailedUrl(url)}
+      className={`w-full h-full object-contain ${className}`}
+      style={{ filter: `${earthFilter}${dropShadow}` }}
+    />
+  );
 };
 
 interface RunePieceProps {

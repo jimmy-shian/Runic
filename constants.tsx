@@ -52,13 +52,13 @@ export const TYPE_CONFIG: Record<RuneType, {
     solidColor: '#10b981'
   },
   [RuneType.Earth]: { 
-    color: 'text-yellow-500', 
-    bg: 'bg-yellow-600',
-    glow: 'shadow-yellow-500/80', 
+    color: 'text-yellow-400', 
+    bg: 'bg-yellow-500',
+    glow: 'shadow-yellow-400/80', 
     icon: Mountain, 
-    gradient: 'from-yellow-400 to-amber-500',
+    gradient: 'from-yellow-300 to-amber-400',
     border: 'border-yellow-400',
-    solidColor: '#eab308'
+    solidColor: '#facc15'
   },
   [RuneType.Lightning]: { 
     color: 'text-purple-500', 

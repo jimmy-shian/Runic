@@ -23,6 +23,7 @@ interface GameBoardProps {
   onDiscard: (fromId: number) => void;
   isFullscreen: boolean;
   swapSignal?: SwapSignal | null;
+  swappingPair?: { cellA: number; cellB: number } | null;
 }
 
 export const GameBoard: React.FC<GameBoardProps> = ({
@@ -32,6 +33,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   onDiscard,
   isFullscreen,
   swapSignal,
+  swappingPair,
 }) => {
   const boardRef = useRef<HTMLDivElement>(null);
   const [cellSize, setCellSize] = useState({ width: 64, height: 64 });
@@ -47,21 +49,48 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   }, []);
   useEffect(() => {
     if (!swapSignal) return;
-    const animations: Animation[] = [];
-    [swapSignal.cellA, swapSignal.cellB].forEach(id => {
-      const cell = boardRef.current?.querySelector<HTMLElement>(`[data-cell-id="${id}"]`);
-      if (!cell) return;
-      const other = boardRef.current?.querySelector<HTMLElement>(`[data-cell-id="${id === swapSignal.cellA ? swapSignal.cellB : swapSignal.cellA}"]`);
-      const target = swapSignal.valid ? cell.querySelector<HTMLElement>('.rune-position') : cell;
-      if (!target || !other) return;
-      const here = cell.getBoundingClientRect();
-      const there = other.getBoundingClientRect();
-      const frames = swapSignal.valid
-        ? [{ transform: `translate(${there.x - here.x}px, ${there.y - here.y}px)` }, { transform: 'translate(0, 0)' }]
-        : [{ transform: 'translateX(0)', boxShadow: '0 0 0 2px #ef4444' }, { transform: 'translateX(-5px)' }, { transform: 'translateX(5px)' }, { transform: 'translateX(0)', boxShadow: 'none' }];
-      animations.push(target.animate(frames, { duration: swapSignal.valid ? 140 : 300, easing: 'ease-out' }));
-    });
-    return () => animations.forEach(animation => animation.cancel());
+
+    if (!swapSignal.valid) {
+      // 無效交換：左右晃動與紅色邊框警示
+      [swapSignal.cellA, swapSignal.cellB].forEach(id => {
+        const cell = boardRef.current?.querySelector<HTMLElement>(`[data-cell-id="${id}"]`);
+        if (!cell) return;
+        cell.animate([
+          { transform: 'translateX(0)', boxShadow: '0 0 0 2px #ef4444' },
+          { transform: 'translateX(-5px)' },
+          { transform: 'translateX(5px)' },
+          { transform: 'translateX(0)', boxShadow: 'none' }
+        ], { duration: 250, easing: 'ease-out' });
+      });
+      return;
+    }
+
+    // 有效交換：兩顆符文相對平滑滑動對調 (200ms，以百分比位移無縫對調)
+    const cellA = swapSignal.cellA;
+    const cellB = swapSignal.cellB;
+    const fromX = cellA % GRID_SIZE;
+    const fromY = Math.floor(cellA / GRID_SIZE);
+    const toX = cellB % GRID_SIZE;
+    const toY = Math.floor(cellB / GRID_SIZE);
+    const dx = (toX - fromX) * 100;
+    const dy = (toY - fromY) * 100;
+
+    const elA = boardRef.current?.querySelector<HTMLElement>(`[data-cell-id="${cellA}"] .rune-swap-wrapper`);
+    const elB = boardRef.current?.querySelector<HTMLElement>(`[data-cell-id="${cellB}"] .rune-swap-wrapper`);
+
+    if (elA) {
+      elA.animate([
+        { transform: `translate(${dx}%, ${dy}%)` },
+        { transform: 'translate(0, 0)' }
+      ], { duration: 200, easing: 'cubic-bezier(0.25, 1, 0.5, 1)', fill: 'backwards' });
+    }
+
+    if (elB) {
+      elB.animate([
+        { transform: `translate(${-dx}%, ${-dy}%)` },
+        { transform: 'translate(0, 0)' }
+      ], { duration: 200, easing: 'cubic-bezier(0.25, 1, 0.5, 1)', fill: 'backwards' });
+    }
   }, [swapSignal]);
   // --- State ---
   const [activeId, setActiveId] = useState<string | null>(null); // 拖曳中的 ID
@@ -296,7 +325,6 @@ export const GameBoard: React.FC<GameBoardProps> = ({
                         let displayRune = cell.rune;
                         const isActiveSource = activeId === cell.id.toString();
                         const isOverTarget = overId === cell.id.toString();
-                        const previewRune = isActiveSource && overId !== null ? grid[Number(overId)]?.rune : null;
 
                         const isAboutToDelete = isActiveSource && activeVoidId !== null;
                         const isSelected = selectedId === cell.id;
@@ -305,6 +333,34 @@ export const GameBoard: React.FC<GameBoardProps> = ({
                         const isMatch = selectedRune && realRune
                             && realRune.type === selectedRune.type
                             && realRune.level === selectedRune.level;
+
+                        // 互換平滑滑動計算 (以百分比相對位移，確保極致流暢且無殘留)
+                        const isSwappingA = swappingPair?.cellA === cell.id;
+                        const isSwappingB = swappingPair?.cellB === cell.id;
+                        let swapStyle: React.CSSProperties = {};
+                        let swapZIndex = '';
+
+                        if (isSwappingA && swappingPair) {
+                            const toX = swappingPair.cellB % GRID_SIZE;
+                            const toY = Math.floor(swappingPair.cellB / GRID_SIZE);
+                            const fromX = swappingPair.cellA % GRID_SIZE;
+                            const fromY = Math.floor(swappingPair.cellA / GRID_SIZE);
+                            swapStyle = {
+                                transform: `translate(${(toX - fromX) * 100}%, ${(toY - fromY) * 100}%)`,
+                                transition: 'transform 200ms cubic-bezier(0.25, 1, 0.5, 1)',
+                            };
+                            swapZIndex = 'z-50';
+                        } else if (isSwappingB && swappingPair) {
+                            const toX = swappingPair.cellB % GRID_SIZE;
+                            const toY = Math.floor(swappingPair.cellB / GRID_SIZE);
+                            const fromX = swappingPair.cellA % GRID_SIZE;
+                            const fromY = Math.floor(swappingPair.cellA / GRID_SIZE);
+                            swapStyle = {
+                                transform: `translate(${(fromX - toX) * 100}%, ${(fromY - toY) * 100}%)`,
+                                transition: 'transform 200ms cubic-bezier(0.25, 1, 0.5, 1)',
+                            };
+                            swapZIndex = 'z-50';
+                        }
 
                         return (
                             <DroppableCell 
@@ -315,35 +371,35 @@ export const GameBoard: React.FC<GameBoardProps> = ({
                                     transition-all duration-200
                                     flex items-center justify-center
                                     bg-slate-800/50 border border-slate-700/30
-                                    ${isOverTarget ? 'bg-slate-700 ring-1 ring-white/20' : ''}
+                                    ${isOverTarget ? 'bg-slate-700/80 ring-2 ring-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.5)] z-20' : ''}
                                     ${isSelected ? 'z-40 ring-2 ring-white' : ''}
                                     ${isProcessing ? 'cursor-wait' : 'cursor-grab active:cursor-grabbing'}
                                 `}
                             >
-                                {previewRune && <div key={`preview-${cell.id}-${overId}`} className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
-                                    <div style={getRuneVisualSize(previewRune.level)}>
-                                        <RuneImage type={previewRune.type} level={previewRune.level} />
-                                    </div>
-                                </div>}
                                 {displayRune && (
-                                    <DraggableRune 
-                                        id={cell.id.toString()} 
-                                        data={displayRune}
-                                        disabled={isProcessing}
-                                        className={`w-full h-full ${isOverTarget && activeRune ? 'opacity-0' : ''}`}
-                                        onClick={() => handleClick(cell.id)}
+                                    <div
+                                        style={swapStyle}
+                                        className={`w-full h-full flex items-center justify-center ${swapZIndex} ${isActiveSource ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
                                     >
-                                         <RunePiece 
-                                            rune={displayRune} 
-                                            cellId={cell.id}
-                                            cellHeight={cellSize.height}
-                                            isAboutToDelete={isAboutToDelete}
-                                            isSelected={isSelected}
-                                            isMatchHighlighted={!!isMatch}
-                                            isDeleted={cell.isDeleted}
-                                            isClearing={cell.clearFx}
-                                         />
-                                    </DraggableRune>
+                                        <DraggableRune 
+                                            id={cell.id.toString()} 
+                                            data={displayRune}
+                                            disabled={isProcessing}
+                                            className="w-full h-full"
+                                            onClick={() => handleClick(cell.id)}
+                                        >
+                                             <RunePiece 
+                                                rune={displayRune} 
+                                                cellId={cell.id}
+                                                cellHeight={cellSize.height}
+                                                isAboutToDelete={isAboutToDelete}
+                                                isSelected={isSelected}
+                                                isMatchHighlighted={!!isMatch}
+                                                isDeleted={cell.isDeleted}
+                                                isClearing={cell.clearFx}
+                                             />
+                                        </DraggableRune>
+                                    </div>
                                 )}
                             </DroppableCell>
                         );

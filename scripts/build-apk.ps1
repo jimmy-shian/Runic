@@ -1,4 +1,4 @@
-param([string]$VersionCode, [string]$VersionName = '1.1.0', [switch]$SkipInstall)
+param([string]$VersionCode, [string]$VersionName = '1.1.1', [switch]$SkipInstall, [switch]$ForceInstall)
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSScriptRoot
 Set-Location -LiteralPath $projectRoot
@@ -30,13 +30,31 @@ try {
     }
     $env:ANDROID_VERSION_CODE = $VersionCode
     $env:ANDROID_VERSION_NAME = $VersionName
-    if (-not $SkipInstall) { Invoke-Checked 'npm.cmd' @('ci', '--no-audit', '--no-fund') }
+    if (-not $SkipInstall) {
+        if (Test-Path 'node_modules') {
+            if ($ForceInstall) {
+                Invoke-Checked 'npm.cmd' @('ci', '--no-audit', '--no-fund')
+            } else {
+                Write-Host 'node_modules found; skipping npm ci (pass -ForceInstall to reinstall).'
+            }
+        } else {
+            Invoke-Checked 'npm.cmd' @('ci', '--no-audit', '--no-fund')
+        }
+    }
     Invoke-Checked 'npm.cmd' @('run', 'typecheck')
     Invoke-Checked 'npm.cmd' @('run', 'test')
     Invoke-Checked 'npm.cmd' @('run', 'build:devlocal')
     Invoke-Checked 'npx.cmd' @('cap', 'sync', 'android')
     Push-Location android
-    try { Invoke-Checked '.\gradlew.bat' @('--no-daemon', 'assembleRelease') } finally { Pop-Location }
+    if (-not (Test-Path 'local.properties')) {
+        $escapedSdk = $env:ANDROID_HOME -replace '\\', '\\'
+        "sdk.dir=$escapedSdk" | Set-Content -LiteralPath 'local.properties' -Encoding ascii
+    }
+    try {
+        Invoke-Checked '.\gradlew.bat' @('assembleRelease')
+    } finally {
+        Pop-Location
+    }
     $apkPath = Join-Path $releasesDir "Runic-$VersionName-release.apk"
     Copy-Item -LiteralPath 'android/app/build/outputs/apk/release/app-release.apk' -Destination $apkPath
     $buildTools = Get-ChildItem -LiteralPath (Join-Path $env:ANDROID_HOME 'build-tools') -Directory |

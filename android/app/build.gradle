@@ -25,7 +25,7 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode requestedCode ? requestedCode.toInteger() : 1
-        versionName System.getenv('ANDROID_VERSION_NAME') ?: '1.1.0'
+        versionName System.getenv('ANDROID_VERSION_NAME') ?: '1.1.1'
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
