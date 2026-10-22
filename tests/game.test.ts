@@ -40,7 +40,8 @@ test('match finder accepts horizontal, vertical, T-shaped and Lv5 lines but excl
   assert.equal(findMatches(grid).length, 0);
 });
 
-test('nonadjacent moves are ignored; adjacent moves without a match persist and count exactly one step', async () => {
+test('nonadjacent moves are ignored; adjacent moves without a match persist and count exactly one step', async context => {
+  context.mock.timers.enable({ apis: ['setTimeout'] });
   let game: ReturnType<typeof useGameLogic>;
   const sounds: string[] = [];
   const play = (sound: string) => sounds.push(sound);
@@ -71,7 +72,7 @@ test('nonadjacent moves are ignored; adjacent moves without a match persist and 
     assert.equal(original[a].rune, oldA);
     assert.notEqual(game.grid[a], original[a]);
     assert.equal(game.isProcessing, true);
-    await act(async () => { await new Promise(resolve => setTimeout(resolve, 5000)); });
+    await act(async () => context.mock.timers.tick(140));
     assert.equal(game.isProcessing, false);
     assert.equal(findMatches(game.grid).length, 0);
     assert.equal(game.grid[a].rune.id, original[b].rune.id);
@@ -84,7 +85,8 @@ test('nonadjacent moves are ignored; adjacent moves without a match persist and 
   await act(async () => renderer.unmount());
 });
 
-test('matched runes animate their exit before removal, then settle without duplicate IDs', async () => {
+test('matched runes animate their exit before removal, then settle without duplicate IDs', async context => {
+  context.mock.timers.enable({ apis: ['setTimeout'] });
   let game: ReturnType<typeof useGameLogic>;
   const sounds: string[] = [];
   const play = (sound: string) => sounds.push(sound);
@@ -97,9 +99,12 @@ test('matched runes animate their exit before removal, then settle without dupli
   } finally { Math.random = originalRandom; }
   await act(async () => game.handleInteraction(2, 3));
   assert.equal(game.moves, 1);
-  await act(async () => { await new Promise(resolve => setTimeout(resolve, 420)); });
+  await act(async () => context.mock.timers.tick(140));
+  await act(async () => context.mock.timers.tick(250));
   assert.ok(game.grid.some(cell => cell.clearFx && cell.rune));
-  await act(async () => { await new Promise(resolve => setTimeout(resolve, 5000)); });
+  for (let round = 0; round < 100 && game.isProcessing; round++) {
+    await act(async () => context.mock.timers.tick(1000));
+  }
   assert.equal(game.isProcessing, false);
   assert.equal(findMatches(game.grid).length, 0);
   assert.equal(new Set(game.grid.map(cell => cell.rune.id)).size, 36);

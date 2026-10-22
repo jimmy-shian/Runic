@@ -41,12 +41,14 @@ SDK 預設為 `%LOCALAPPDATA%\Android\Sdk`，也可設定 `ANDROID_HOME`。
 
 兩邊的 applicationId 固定為 `io.github.jimmyshian.runic`，並使用同一把 release key；後編譯的版本碼高於前一版，可直接覆蓋安裝。
 這是下載 APK 後手動覆蓋更新，不包含 App 內自動下載更新。
+若手機現有安裝版使用 debug key 或其他金鑰，Android 不允許用此 release key 直接覆蓋，應先確認既有版本的簽章。
 
-## 待納入驗證項目
+## 本輪驗證範圍
 
 P0/P1/P2/P4 已納入，並依使用者後續指示保留原玩法：任何相鄰兩格均可交換，即使沒有形成消除也會交換成功並計一步；非相鄰格不能直接交換。
 交換覆層取消回原點動畫；拖曳預覽會把目標符文顯示於來源格，放開後兩顆符文滑動到位。消除時先亮起、碎片向外飛散並縮小淡出，再合成及補件。單點選取保留高光與等級標籤。
-五種 Lv2 已依使用者後續指示重新繪製為寶珠，生成母檔及提示詞存於 `art/runes-lv2/`，遊戲圖存於 `public/runes/*-lv2.png`。
+Lv1、Lv2 共十張已依使用者後續指示全部重繪，保留使用者原圖的筆觸、材質與元素造型。Lv1 為幼生階段，Lv2 從同一張 Lv1 延伸成更成熟的階段，例如兩片嫩葉的種子成長為多葉植株。顯示尺寸分別為 85% 與 100%，拖曳預覽沿用相同尺寸。
+生成母檔及提示詞存於 `art/runes-lv1/`、`art/runes-lv2/`，256px 遊戲圖存於 `public/runes/`。圖片更新需同步調整 `runeAssets.ts` 的資產版本，避免舊快取。
 App icon、浮分與白閃維持延後。
 25 張透明 PNG 放在 `public/runes/`，母檔 `RunicElements_25/` 保留原樣。
 重製圖片腳本為 `scripts/prepare-runes.py`，需 Pillow 與 NumPy；執行 Python 使用 `C:\Users\Administrator\venv\Scripts\python.exe`。

@@ -1,7 +1,10 @@
 import { RuneLevel, RuneType } from './types';
 
+// Bump whenever sprite artwork changes so existing WebViews cannot reuse old PNGs.
+const RUNE_ASSET_VERSION = '20261022-original-growth-v4';
+
 export const getRuneImageUrl = (type: RuneType, level: RuneLevel) =>
-  `${import.meta.env.BASE_URL}runes/${type.toLowerCase()}-lv${level}.png`;
+  `${import.meta.env.BASE_URL}runes/${type.toLowerCase()}-lv${level}.png?v=${RUNE_ASSET_VERSION}`;
 
 export const ALL_RUNE_IMAGE_URLS = Object.values(RuneType).flatMap(type =>
   [1, 2, 3, 4, 5].map(level => getRuneImageUrl(type, level)));

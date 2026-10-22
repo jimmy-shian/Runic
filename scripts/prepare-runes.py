@@ -25,13 +25,13 @@ def save_sprite(canvas, path):
 for folder, element in names.items():
     for source in sorted((root / 'RunicElements_25' / folder).glob('*.png')):
         level = int(re.search(r'_Lv(\d)_', source.name)[1])
-        override = root / 'art' / 'runes-lv2' / f'{element}.png'
-        if level == 2 and override.exists():
+        override = root / 'art' / f'runes-lv{level}' / f'{element}.png'
+        if level in (1, 2) and override.exists():
             image = Image.open(override).convert('RGBA')
             image.thumbnail((226, 226), Image.Resampling.LANCZOS)
             canvas = Image.new('RGBA', (256, 256))
             canvas.paste(image, ((256-image.width)//2, (256-image.height)//2))
-            save_sprite(canvas, dest / f'{element}-lv2.png')
+            save_sprite(canvas, dest / f'{element}-lv{level}.png')
             count += 1
             continue
         image = Image.open(source).convert('RGBA')

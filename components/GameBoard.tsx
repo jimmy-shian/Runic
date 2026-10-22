@@ -11,7 +11,7 @@ import {
     DragOverEvent, 
 } from '@dnd-kit/core';
 import { GridState, Rune, SwapSignal } from '../types';
-import { RunePiece, RuneImage } from './RunePiece';
+import { RunePiece, RuneImage, getRuneVisualSize } from './RunePiece';
 import { GRID_SIZE } from '../constants';
 import { X } from 'lucide-react';
 import { DraggableRune, DroppableCell } from './DndComponents';
@@ -321,7 +321,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
                                 `}
                             >
                                 {previewRune && <div key={`preview-${cell.id}-${overId}`} className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
-                                    <div style={{ width: previewRune.level === 3 ? '72%' : previewRune.level === 4 ? '70%' : previewRune.level === 5 ? '95%' : '80%', height: previewRune.level === 3 ? '72%' : previewRune.level === 4 ? '85%' : previewRune.level === 5 ? '95%' : '80%' }}>
+                                    <div style={getRuneVisualSize(previewRune.level)}>
                                         <RuneImage type={previewRune.type} level={previewRune.level} />
                                     </div>
                                 </div>}
