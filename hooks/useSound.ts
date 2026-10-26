@@ -11,17 +11,22 @@ export const useSound = (enabled = true) => {
     if (!enabledRef.current) return;
     const Constructor = window.AudioContext || (window as any).webkitAudioContext;
     if (!Constructor) return;
-    if (!context.current) {
+    if (!context.current || context.current.state === 'closed') {
       context.current = new Constructor();
       output.current = context.current!.createGain();
       output.current.connect(context.current!.destination);
     }
-    if (context.current.state === 'suspended') void context.current.resume().catch(() => {});
+    if (context.current.state !== 'running') void context.current.resume().catch(() => {});
   }, []);
   useEffect(() => {
     if (output.current && context.current) output.current.gain.setValueAtTime(enabled ? 1 : 0, context.current.currentTime);
   }, [enabled]);
-  useEffect(() => () => { void context.current?.close(); }, []);
+  useEffect(() => () => {
+    const previous = context.current;
+    context.current = null;
+    output.current = null;
+    if (previous && previous.state !== 'closed') void previous.close().catch(() => {});
+  }, []);
   const playSound = useCallback((type: SoundType, combo = 1) => {
     if ((type === 'invalid' || type === 'blast') && 'vibrate' in navigator) navigator.vibrate(type === 'blast' ? 20 : 14);
     if (!enabledRef.current) return;
@@ -54,7 +59,7 @@ export const useSound = (enabled = true) => {
       source.start(now); source.stop(now + duration);
     };
     switch (type) {
-      case 'move': noise(1600, .12); break;
+      case 'move': tone(480, .13, .18, 0, 820, 'triangle'); tone(820, .12, .13, .06, 560); noise(1600, .12, .12); break;
       case 'invalid': tone(170, .18, .09, 0, 120, 'triangle'); tone(120, .18, .06); break;
       case 'discard': tone(140, .15, .25, 0, 90); tone(420, .12, .06, .08, 760); break;
       case 'merge': SOUND_FREQS.merge.forEach((f, i) => tone(f, .3, .15 / (i + 1), 0, f * 1.8)); noise(3000, .08, .1); break;

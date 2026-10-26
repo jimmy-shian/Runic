@@ -225,7 +225,7 @@ export const useGameLogic = (playSound: (type: SoundType, combo?: number) => voi
       }
 
       playSound('match', ++combo);
-      await delay(250);
+      await delay(200);
 
       let gridWithMerges = [...activeGrid];
       let gainedScore = 0;
@@ -348,10 +348,10 @@ export const useGameLogic = (playSound: (type: SoundType, combo?: number) => voi
         ...cell,
         clearFx: !!cell.rune && cell.rune.id !== gridWithMerges[index].rune?.id,
       })));
-      await delay(320);
+      await delay(260);
       setGrid([...gridWithMerges]);
       activeGrid = gridWithMerges;
-      await delay(300);
+      await delay(250);
     }
 
     const cleanGrid = activeGrid.map(cell => ({
@@ -383,11 +383,13 @@ export const useGameLogic = (playSound: (type: SoundType, combo?: number) => voi
     playSound('move');
     setMoves(prev => prev + 1);
     setGrid(newGrid);
+    setSwappingPair({ cellA: fromId, cellB: toId });
     setSwapSignal(previous => ({ cellA: fromId, cellB: toId, valid: true, seq: (previous?.seq ?? 0) + 1 }));
 
     setTimeout(() => {
+      setSwappingPair(null);
       void resolveBoard(newGrid);
-    }, 140);
+    }, 200);
   }, [grid, resolveBoard, playSound]);
 
   // Helper: 依 index 取得內部鄰格（不會超界）

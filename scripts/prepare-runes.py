@@ -35,6 +35,13 @@ for folder, element in names.items():
             count += 1
             continue
         image = Image.open(source).convert('RGBA')
+        if np.asarray(image)[:, :, 3].min() < 250:
+            image.thumbnail((226, 226), Image.Resampling.LANCZOS)
+            canvas = Image.new('RGBA', (256, 256))
+            canvas.paste(image, ((256-image.width)//2, (256-image.height)//2))
+            save_sprite(canvas, dest / f'{element}-lv{level}.png')
+            count += 1
+            continue
         rgb = np.asarray(image)[:, :, :3].astype(float)
         # Only remove dark pixels connected to the outside. Enclosed dark detail survives.
         brightness = rgb.max(axis=2)

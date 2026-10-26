@@ -1,4 +1,4 @@
-param([string]$VersionCode, [string]$VersionName = '1.1.1', [switch]$SkipInstall, [switch]$ForceInstall)
+param([string]$VersionCode, [string]$VersionName = '1.1.2', [switch]$SkipInstall, [switch]$ForceInstall)
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSScriptRoot
 Set-Location -LiteralPath $projectRoot

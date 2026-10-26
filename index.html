@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>Runic Synthesis</title>
     <link rel="icon" type="image/x-icon" href="%BASE_URL%favicon.ico" />
     <link rel="icon" type="image/png" sizes="32x32" href="%BASE_URL%icons/favicon-32.png" />
@@ -10,8 +10,14 @@
     <link rel="apple-touch-icon" sizes="180x180" href="%BASE_URL%icons/apple-touch-icon.png" />
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+      :root {
+        --sat: env(safe-area-inset-top, 0px);
+        --sab: env(safe-area-inset-bottom, 0px);
+        --sal: env(safe-area-inset-left, 0px);
+        --sar: env(safe-area-inset-right, 0px);
+      }
       body {
-        background-color: #0f172a;
+        background-color: #020617;
         color: #e2e8f0;
         overscroll-behavior: none;
       }

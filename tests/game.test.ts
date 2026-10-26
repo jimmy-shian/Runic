@@ -72,7 +72,7 @@ test('nonadjacent moves are ignored; adjacent moves without a match persist and 
     assert.equal(original[a].rune, oldA);
     assert.notEqual(game.grid[a], original[a]);
     assert.equal(game.isProcessing, true);
-    await act(async () => context.mock.timers.tick(140));
+    await act(async () => context.mock.timers.tick(200));
     assert.equal(game.isProcessing, false);
     assert.equal(findMatches(game.grid).length, 0);
     assert.equal(game.grid[a].rune.id, original[b].rune.id);
@@ -99,8 +99,8 @@ test('matched runes animate their exit before removal, then settle without dupli
   } finally { Math.random = originalRandom; }
   await act(async () => game.handleInteraction(2, 3));
   assert.equal(game.moves, 1);
-  await act(async () => context.mock.timers.tick(140));
-  await act(async () => context.mock.timers.tick(250));
+  await act(async () => context.mock.timers.tick(200));
+  await act(async () => context.mock.timers.tick(200));
   assert.ok(game.grid.some(cell => cell.clearFx && cell.rune));
   for (let round = 0; round < 100 && game.isProcessing; round++) {
     await act(async () => context.mock.timers.tick(1000));

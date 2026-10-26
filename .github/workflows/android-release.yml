@@ -34,7 +34,7 @@ jobs:
       ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
       ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
       ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-      ANDROID_VERSION_NAME: '1.1.1'
+      ANDROID_VERSION_NAME: '1.1.2'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -85,7 +85,9 @@ jobs:
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "apk-${ANDROID_VERSION_CODE}" releases/* --target "$GITHUB_SHA" --title "Runic ${ANDROID_VERSION_NAME} (${ANDROID_VERSION_CODE})" --generate-notes
+        run: |
+          gh release delete "${GITHUB_REF_NAME}" --yes --cleanup-tag=false 2>/dev/null || true
+          gh release create "${GITHUB_REF_NAME}" releases/* --target "$GITHUB_SHA" --title "Runic ${ANDROID_VERSION_NAME} (${ANDROID_VERSION_CODE})" --generate-notes
       - name: Remove signing key
         if: always()
         run: rm -f -- "$ANDROID_KEYSTORE_PATH"
