@@ -22,6 +22,7 @@ interface GameBoardProps {
   onInteraction: (fromId: number, toId: number) => void;
   onDiscard: (fromId: number) => void;
   isFullscreen: boolean;
+  isLandscape?: boolean;
   onSound?: (type: SoundType) => void;
   swapSignal?: SwapSignal | null;
   swappingPair?: { cellA: number; cellB: number } | null;
@@ -35,6 +36,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   onInteraction,
   onDiscard,
   isFullscreen,
+  isLandscape = false,
   swapSignal,
   onSound,
 }) => {
@@ -261,27 +263,35 @@ export const GameBoard: React.FC<GameBoardProps> = ({
         onDragEnd={handleDragEnd}
         onDragCancel={resetDrag}
     >
-        <div className="relative flex items-center justify-center w-full" style={{
+        <div className="relative flex items-center justify-center w-full h-full" style={{
             // Size the frame independently of its images; the grid fills this fixed square.
-            width: isFullscreen
-              ? 'min(calc(100vw - 8px), calc(100dvh - 110px), 580px)'
-              : 'min(calc(100vw - 16px), calc(100dvh - 200px), 480px)',
+            width: isLandscape
+              ? 'min(100%, calc(100dvh - 24px))'
+              : (isFullscreen
+                  ? 'min(calc(100vw - 8px), calc(100dvh - 110px), 580px)'
+                  : 'min(calc(100vw - 16px), calc(100dvh - 200px), 480px)'),
+            height: isLandscape ? 'min(100%, calc(100dvh - 24px))' : undefined,
             maxWidth: '100%',
+            maxHeight: isLandscape ? 'calc(100dvh - 24px)' : undefined,
             aspectRatio: '1 / 1',
             flexShrink: 0,
         }}>
         
         <div ref={boardRef}
             className={`grid rounded-2xl bg-slate-900 shadow-2xl transition-colors duration-300 touch-none ${
-                isFullscreen ? 'p-1 gap-1' : 'p-1.5 gap-1 md:p-3 md:gap-1.5'
+                isLandscape ? 'p-2 gap-1.5' : (isFullscreen ? 'p-1 gap-1' : 'p-1.5 gap-1 md:p-3 md:gap-1.5')
             }`}
             style={{
-                gridTemplateColumns: isFullscreen
-                  ? `10px repeat(${GRID_SIZE}, minmax(0, 1fr)) 10px`
-                  : `14px repeat(${GRID_SIZE}, minmax(0, 1fr)) 14px`,
-                gridTemplateRows: isFullscreen
-                  ? `18px repeat(${GRID_SIZE}, minmax(0, 1fr)) 18px`
-                  : `22px repeat(${GRID_SIZE}, minmax(0, 1fr)) 22px`,
+                gridTemplateColumns: isLandscape
+                  ? `clamp(12px, 2vmin, 16px) repeat(${GRID_SIZE}, minmax(0, 1fr)) clamp(12px, 2vmin, 16px)`
+                  : (isFullscreen
+                      ? `10px repeat(${GRID_SIZE}, minmax(0, 1fr)) 10px`
+                      : `14px repeat(${GRID_SIZE}, minmax(0, 1fr)) 14px`),
+                gridTemplateRows: isLandscape
+                  ? `clamp(14px, 2.5vmin, 20px) repeat(${GRID_SIZE}, minmax(0, 1fr)) clamp(14px, 2.5vmin, 20px)`
+                  : (isFullscreen
+                      ? `18px repeat(${GRID_SIZE}, minmax(0, 1fr)) 18px`
+                      : `22px repeat(${GRID_SIZE}, minmax(0, 1fr)) 22px`),
                 // 依螢幕寬度與高度自適應，全螢幕時極致放大貼邊
                 position: 'absolute',
                 inset: 0,

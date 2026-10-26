@@ -38,6 +38,24 @@ const App: React.FC = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
+  // 偵測橫向螢幕 (Landscape)
+  const [isLandscape, setIsLandscape] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.innerWidth > window.innerHeight;
+  });
+
+  useEffect(() => {
+    const checkOrientation = () => {
+      setIsLandscape(window.innerWidth > window.innerHeight);
+    };
+    window.addEventListener('resize', checkOrientation);
+    window.addEventListener('orientationchange', checkOrientation);
+    return () => {
+      window.removeEventListener('resize', checkOrientation);
+      window.removeEventListener('orientationchange', checkOrientation);
+    };
+  }, []);
+
   const handleEnterFullscreen = async () => {
     setIsFullscreen(true);
     setIsMenuOpen(false);
@@ -88,7 +106,7 @@ const App: React.FC = () => {
         <button 
             onClick={() => { reshuffleBoard(); setIsMenuOpen(false); }}
             className="p-2.5 md:p-3 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 transition flex items-center justify-center gap-2 active:scale-95"
-            title="重洗版面"
+            title="戰術重洗"
         >
             <Shuffle className="w-5 h-5" />
             {isMobile && <span className="text-sm font-bold">戰術重洗</span>}
@@ -142,147 +160,290 @@ const App: React.FC = () => {
         paddingBottom: isFullscreen
           ? 'max(env(safe-area-inset-bottom, 0px), 8px)'
           : 'calc(max(env(safe-area-inset-bottom, 0px), 12px) + 6px)',
-        paddingLeft: isFullscreen ? 'max(4px, env(safe-area-inset-left, 4px))' : 'max(8px, env(safe-area-inset-left, 8px))',
-        paddingRight: isFullscreen ? 'max(4px, env(safe-area-inset-right, 4px))' : 'max(8px, env(safe-area-inset-right, 8px))',
+        paddingLeft: isFullscreen ? 'max(6px, env(safe-area-inset-left, 6px))' : 'max(10px, env(safe-area-inset-left, 10px))',
+        paddingRight: isFullscreen ? 'max(6px, env(safe-area-inset-right, 6px))' : 'max(10px, env(safe-area-inset-right, 10px))',
       }}
     >
-      {/* 頂部等比留白：與底部彈性格嚴格對稱，確保整體絕對垂直置中 */}
-      <div className="w-full flex-1 min-h-[6px]" />
+      {isLandscape ? (
+        /* ========== 橫向模式 (Landscape)：左標題分數 / 中棋盤佔滿 / 右垂直展開按鈕 ========== */
+        <div className="h-full w-full flex flex-row items-center justify-between gap-3 sm:gap-4 md:gap-6 px-2 sm:px-4 md:px-6 py-1 overflow-hidden">
+          
+          {/* 左側：Title + 分數 + 步數 + 說明 */}
+          <div className="h-full w-40 sm:w-48 md:w-56 shrink-0 flex flex-col justify-between py-1 md:py-2 z-10 select-none">
+            {/* LOGO & Title */}
+            <div className="flex items-center gap-2.5">
+              <img 
+                src={`${import.meta.env.BASE_URL}icons/icon-192.png`} 
+                alt="Logo" 
+                width={40} 
+                height={40}
+                className="w-8 h-8 md:w-10 md:h-10 rounded-xl shadow-lg shadow-blue-500/20 shrink-0" 
+              />
+              <div>
+                <h1 className="font-extrabold text-sm sm:text-base md:text-xl leading-tight tracking-wide bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">
+                  RUNIC
+                </h1>
+                <span className="text-[8px] sm:text-[9px] md:text-[11px] text-slate-500 uppercase tracking-[0.25em] font-bold block -mt-0.5">
+                  Synthesis
+                </span>
+              </div>
+            </div>
 
-      {/* 核心內容舞台（垂直置中核心區塊） */}
-      <div className={`w-full ${isFullscreen ? 'max-w-[560px]' : 'max-w-[480px]'} flex flex-col items-center gap-2 md:gap-3 shrink-0`}>
-        
-        {/* 頂部區域（Header + 分數） */}
-        {!isFullscreen ? (
-          <div className="w-full flex flex-col gap-2 shrink-0">
-            {/* LOGO 與選單按鈕 */}
-            <div className="w-full flex justify-between items-center relative z-50">
-              {/* 左側 LOGO */}
-              <div className="flex items-center gap-2.5">
-                  <img 
-                      src={`${import.meta.env.BASE_URL}icons/icon-192.png`} 
-                      alt="Logo" 
-                      width={40} 
-                      height={40}
-                      className="w-8 h-8 md:w-10 md:h-10 rounded-xl shadow-lg shadow-blue-500/20" 
-                  />
-                  <div>
-                      <h1 className="font-extrabold text-base md:text-xl leading-tight tracking-wide bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">
-                          RUNIC
-                      </h1>
-                      <span className="text-[9px] md:text-[11px] text-slate-500 uppercase tracking-[0.25em] font-bold block -mt-0.5">
-                          Synthesis
-                      </span>
+            {/* 分數與步數垂直排列 */}
+            <div className="flex flex-col gap-2 md:gap-3 my-auto w-full">
+              <div className="bg-slate-900/80 rounded-2xl p-2.5 sm:p-3 md:p-3.5 border border-slate-800 shadow-lg backdrop-blur-sm flex flex-col gap-0.5">
+                <span className="text-[10px] md:text-xs text-slate-400 uppercase font-bold tracking-wider">分數</span>
+                <span className="text-xl sm:text-2xl md:text-3xl font-mono font-bold text-emerald-400 drop-shadow-sm">{score.toLocaleString()}</span>
+              </div>
+              <div className="bg-slate-900/80 rounded-2xl p-2.5 sm:p-3 md:p-3.5 border border-slate-800 shadow-lg backdrop-blur-sm flex flex-col gap-0.5">
+                <span className="text-[10px] md:text-xs text-slate-400 uppercase font-bold tracking-wider">步數</span>
+                <span className="text-xl sm:text-2xl md:text-3xl font-mono font-bold text-blue-400 drop-shadow-sm">{moves}</span>
+              </div>
+            </div>
+
+            {/* 底部說明文字 */}
+            <div className="text-[9px] sm:text-[10px] md:text-xs text-slate-400/80 leading-relaxed bg-slate-900/40 p-2 sm:p-2.5 rounded-xl border border-slate-800/40">
+              <p>連線 3 個相同符文進行合成。</p>
+              <p className="mt-0.5 text-slate-500">拖曳至外圍插槽可銷毀符文。</p>
+            </div>
+          </div>
+
+          {/* 中間主棋盤區域：佔滿空間 */}
+          <div className="flex-1 h-full min-w-0 flex items-center justify-center relative z-0 isolate">
+            {assetsReady ? (
+              <GameBoard
+                grid={grid} 
+                swapSignal={swapSignal}
+                swappingPair={swappingPair}
+                isProcessing={isProcessing}
+                onInteraction={handleInteraction}
+                onDiscard={handleDiscard}
+                isFullscreen={isFullscreen}
+                isLandscape={true}
+                onSound={playSound}
+              />
+            ) : (
+              <div role="status" aria-live="polite" className="flex flex-col items-center gap-4 p-8">
+                <div className="w-20 h-20 animate-pulse"><RuneImage type={RuneType.Lightning} level={5} /></div>
+                <p className="text-sm text-slate-400">載入符文 {assetProgress.loaded + assetProgress.failed}/25</p>
+                <progress aria-label="符文載入進度" max={25} value={assetProgress.loaded + assetProgress.failed} className="w-48" />
+              </div>
+            )}
+          </div>
+
+          {/* 右側按鈕操作區：垂直排列，像圖二直接展開 */}
+          <div 
+            className="h-full w-40 sm:w-48 md:w-56 shrink-0 flex flex-col justify-center gap-1.5 sm:gap-2 md:gap-2.5 py-1 md:py-2 z-10 overflow-y-auto custom-scrollbar"
+            onClickCapture={() => playSound('click')}
+          >
+            <button 
+              onClick={() => setShowCollection(true)}
+              className="w-full py-2 sm:py-2.5 md:py-3 px-2.5 sm:px-3 md:px-4 rounded-2xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 transition flex items-center justify-center gap-2 sm:gap-2.5 active:scale-95 shadow-sm"
+              title="符文圖鑑"
+            >
+              <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+              <span className="text-xs sm:text-sm md:text-base font-bold tracking-wide">符文圖鑑</span>
+            </button>
+
+            <button 
+              onClick={() => setShowStats(true)}
+              className="w-full py-2 sm:py-2.5 md:py-3 px-2.5 sm:px-3 md:px-4 rounded-2xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 transition flex items-center justify-center gap-2 sm:gap-2.5 active:scale-95 shadow-sm"
+              title="煉金手札"
+            >
+              <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+              <span className="text-xs sm:text-sm md:text-base font-bold tracking-wide">煉金手札</span>
+            </button>
+
+            <button 
+              onClick={() => reshuffleBoard()}
+              className="w-full py-2 sm:py-2.5 md:py-3 px-2.5 sm:px-3 md:px-4 rounded-2xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 transition flex items-center justify-center gap-2 sm:gap-2.5 active:scale-95 shadow-sm"
+              title="戰術重洗"
+            >
+              <Shuffle className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+              <span className="text-xs sm:text-sm md:text-base font-bold tracking-wide">戰術重洗</span>
+            </button>
+
+            <button 
+              onClick={() => resetGame()}
+              className="w-full py-2 sm:py-2.5 md:py-3 px-2.5 sm:px-3 md:px-4 rounded-2xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 transition flex items-center justify-center gap-2 sm:gap-2.5 active:scale-95 shadow-sm"
+              title="重新開始"
+            >
+              <RotateCcw className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+              <span className="text-xs sm:text-sm md:text-base font-bold tracking-wide">重新開始</span>
+            </button>
+
+            <button 
+              onClick={() => setShowHelp(true)}
+              className="w-full py-2 sm:py-2.5 md:py-3 px-2.5 sm:px-3 md:px-4 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition border border-slate-700 flex items-center justify-center gap-2 sm:gap-2.5 active:scale-95 shadow-sm"
+              title="操作說明"
+            >
+              <HelpCircle className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+              <span className="text-xs sm:text-sm md:text-base font-bold tracking-wide">操作說明</span>
+            </button>
+
+            <button 
+              onClick={isFullscreen ? handleExitFullscreen : handleEnterFullscreen}
+              className="w-full py-2 sm:py-2.5 md:py-3 px-2.5 sm:px-3 md:px-4 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition border border-slate-700 flex items-center justify-center gap-2 sm:gap-2.5 active:scale-95 shadow-sm"
+              title={isFullscreen ? '退出全螢幕' : '全螢幕'}
+            >
+              {isFullscreen ? <Minimize2 className="w-4 h-4 sm:w-5 sm:h-5 shrink-0 text-blue-400" /> : <Maximize2 className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />}
+              <span className="text-xs sm:text-sm md:text-base font-bold tracking-wide">{isFullscreen ? '退出全螢幕' : '全螢幕'}</span>
+            </button>
+
+            <button 
+              onClick={() => setSoundEnabled(v => !v)}
+              className="w-full py-2 sm:py-2.5 md:py-3 px-2.5 sm:px-3 md:px-4 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition border border-slate-700 flex items-center justify-center gap-2 sm:gap-2.5 active:scale-95 shadow-sm"
+              title={soundEnabled ? '關閉音效' : '開啟音效'}
+              aria-pressed={soundEnabled}
+            >
+              {soundEnabled ? <Volume2 className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" /> : <VolumeX className="w-4 h-4 sm:w-5 sm:h-5 shrink-0 text-slate-500" />}
+              <span className="text-xs sm:text-sm md:text-base font-bold tracking-wide">{soundEnabled ? '音效：開啟' : '音效：靜音'}</span>
+            </button>
+          </div>
+
+        </div>
+      ) : (
+        /* ========== 直向模式 (Portrait)：維持原有的垂直佈局 ========== */
+        <>
+          {/* 頂部等比留白：與底部彈性格嚴格對稱，確保整體絕對垂直置中 */}
+          <div className="w-full flex-1 min-h-[6px]" />
+
+          {/* 核心內容舞台（垂直置中核心區塊） */}
+          <div className={`w-full ${isFullscreen ? 'max-w-[560px]' : 'max-w-[480px]'} flex flex-col items-center gap-2 md:gap-3 shrink-0`}>
+            
+            {/* 頂部區域（Header + 分數） */}
+            {!isFullscreen ? (
+              <div className="w-full flex flex-col gap-2 shrink-0">
+                {/* LOGO 與選單按鈕 */}
+                <div className="w-full flex justify-between items-center relative z-50">
+                  {/* 左側 LOGO */}
+                  <div className="flex items-center gap-2.5">
+                      <img 
+                          src={`${import.meta.env.BASE_URL}icons/icon-192.png`} 
+                          alt="Logo" 
+                          width={40} 
+                          height={40}
+                          className="w-8 h-8 md:w-10 md:h-10 rounded-xl shadow-lg shadow-blue-500/20" 
+                      />
+                      <div>
+                          <h1 className="font-extrabold text-base md:text-xl leading-tight tracking-wide bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">
+                              RUNIC
+                          </h1>
+                          <span className="text-[9px] md:text-[11px] text-slate-500 uppercase tracking-[0.25em] font-bold block -mt-0.5">
+                              Synthesis
+                          </span>
+                      </div>
                   </div>
-              </div>
-              
-              {/* 右側桌機控制區 */}
-              <div className="hidden md:flex gap-1.5" onClickCapture={() => playSound('click')}>
-                  <ActionButtons />
-              </div>
+                  
+                  {/* 右側桌機控制區 */}
+                  <div className="hidden md:flex gap-1.5" onClickCapture={() => playSound('click')}>
+                      <ActionButtons />
+                  </div>
 
-              {/* 手機漢堡選單按鈕 */}
-              <div className="md:hidden relative">
+                  {/* 手機漢堡選單按鈕 */}
+                  <div className="md:hidden relative">
+                      <button 
+                          onClick={() => setIsMenuOpen(!isMenuOpen)}
+                          className={`p-2 rounded-xl transition border active:scale-95 ${
+                              isMenuOpen 
+                              ? 'bg-slate-700 text-white border-slate-500' 
+                              : 'bg-slate-900/90 text-slate-300 border-slate-700/80 hover:bg-slate-800'
+                          }`}
+                          title="選單"
+                      >
+                          {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+                      </button>
+
+                      {/* 手機選單彈窗 */}
+                      <AnimatePresence>
+                          {isMenuOpen && (
+                              <>
+                                  <div 
+                                      className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[190]" 
+                                      onClick={() => setIsMenuOpen(false)}
+                                  />
+                                  <motion.div 
+                                      initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                                      exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                                      transition={{ duration: 0.15 }}
+                                      className="absolute right-0 top-full mt-2 w-48 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-2.5 flex flex-col gap-1.5 z-[200] backdrop-blur-md origin-top-right"
+                                      onClickCapture={() => playSound('click')}
+                                  >
+                                      <ActionButtons isMobile={true} />
+                                  </motion.div>
+                              </>
+                          )}
+                      </AnimatePresence>
+                  </div>
+                </div>
+
+                {/* 分數板 */}
+                <div className="w-full flex gap-2 relative z-0">
+                    <div className="flex-1 bg-slate-900/80 rounded-xl py-1.5 md:py-2.5 px-3 md:px-4 border border-slate-800 flex items-center justify-between shadow-lg backdrop-blur-sm">
+                        <span className="text-[10px] md:text-xs text-slate-400 uppercase font-bold tracking-wider">分數</span>
+                        <span className="text-lg md:text-2xl font-mono font-bold text-emerald-400 drop-shadow-sm">{score.toLocaleString()}</span>
+                    </div>
+                    <div className="flex-1 bg-slate-900/80 rounded-xl py-1.5 md:py-2.5 px-3 md:px-4 border border-slate-800 flex items-center justify-between shadow-lg backdrop-blur-sm">
+                        <span className="text-[10px] md:text-xs text-slate-400 uppercase font-bold tracking-wider">步數</span>
+                        <span className="text-lg md:text-2xl font-mono font-bold text-blue-400 drop-shadow-sm">{moves}</span>
+                    </div>
+                </div>
+              </div>
+            ) : (
+              /* 全螢幕模式頂部 HUD */
+              <div className="w-full flex items-center justify-between px-1 shrink-0 relative z-50">
+                  <div className="flex items-center gap-3 bg-slate-900/90 backdrop-blur-md px-3.5 py-1.5 rounded-xl border border-slate-800 shadow-lg text-xs">
+                      <span className="text-slate-400 font-bold">分數 <span className="font-mono text-emerald-400 font-bold text-sm ml-1">{score.toLocaleString()}</span></span>
+                      <span className="w-px h-3 bg-slate-700" />
+                      <span className="text-slate-400 font-bold">步數 <span className="font-mono text-blue-400 font-bold text-sm ml-1">{moves}</span></span>
+                  </div>
+
                   <button 
-                      onClick={() => setIsMenuOpen(!isMenuOpen)}
-                      className={`p-2 rounded-xl transition border active:scale-95 ${
-                          isMenuOpen 
-                          ? 'bg-slate-700 text-white border-slate-500' 
-                          : 'bg-slate-900/90 text-slate-300 border-slate-700/80 hover:bg-slate-800'
-                      }`}
-                      title="選單"
+                      onClick={handleExitFullscreen}
+                      className="p-1.5 px-3 rounded-xl bg-slate-900/90 text-slate-200 hover:bg-slate-800 active:scale-95 backdrop-blur-md shadow-xl border border-slate-700 transition flex items-center gap-1.5 text-xs font-bold"
+                      title="退出全螢幕"
                   >
-                      {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+                      <Minimize2 className="w-4 h-4 text-blue-400" />
+                      <span className="hidden sm:inline">退出</span>
                   </button>
-
-                  {/* 手機選單彈窗（提高 z-index 至 200，徹底防止被棋盤或選中標籤穿透遮擋） */}
-                  <AnimatePresence>
-                      {isMenuOpen && (
-                          <>
-                              <div 
-                                  className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[190]" 
-                                  onClick={() => setIsMenuOpen(false)}
-                              />
-                              <motion.div 
-                                  initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                                  exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                                  transition={{ duration: 0.15 }}
-                                  className="absolute right-0 top-full mt-2 w-48 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-2.5 flex flex-col gap-1.5 z-[200] backdrop-blur-md origin-top-right"
-                                  onClickCapture={() => playSound('click')}
-                              >
-                                  <ActionButtons isMobile={true} />
-                              </motion.div>
-                          </>
-                      )}
-                  </AnimatePresence>
               </div>
-            </div>
+            )}
 
-            {/* 分數板 */}
-            <div className="w-full flex gap-2 relative z-0">
-                <div className="flex-1 bg-slate-900/80 rounded-xl py-1.5 md:py-2.5 px-3 md:px-4 border border-slate-800 flex items-center justify-between shadow-lg backdrop-blur-sm">
-                    <span className="text-[10px] md:text-xs text-slate-400 uppercase font-bold tracking-wider">分數</span>
-                    <span className="text-lg md:text-2xl font-mono font-bold text-emerald-400 drop-shadow-sm">{score.toLocaleString()}</span>
+            {/* 中央主棋盤區域 */}
+            <div className="w-full flex items-center justify-center relative z-0 isolate">
+              {assetsReady ? (
+                <GameBoard
+                  grid={grid} 
+                  swapSignal={swapSignal}
+                  swappingPair={swappingPair}
+                  isProcessing={isProcessing}
+                  onInteraction={handleInteraction}
+                  onDiscard={handleDiscard}
+                  isFullscreen={isFullscreen}
+                  isLandscape={false}
+                  onSound={playSound}
+                />
+              ) : (
+                <div role="status" aria-live="polite" className="flex flex-col items-center gap-4 p-8">
+                  <div className="w-20 h-20 animate-pulse"><RuneImage type={RuneType.Lightning} level={5} /></div>
+                  <p className="text-sm text-slate-400">載入符文 {assetProgress.loaded + assetProgress.failed}/25</p>
+                  <progress aria-label="符文載入進度" max={25} value={assetProgress.loaded + assetProgress.failed} className="w-48" />
                 </div>
-                <div className="flex-1 bg-slate-900/80 rounded-xl py-1.5 md:py-2.5 px-3 md:px-4 border border-slate-800 flex items-center justify-between shadow-lg backdrop-blur-sm">
-                    <span className="text-[10px] md:text-xs text-slate-400 uppercase font-bold tracking-wider">步數</span>
-                    <span className="text-lg md:text-2xl font-mono font-bold text-blue-400 drop-shadow-sm">{moves}</span>
-                </div>
+              )}
             </div>
-          </div>
-        ) : (
-          /* 全螢幕模式頂部 HUD */
-          <div className="w-full flex items-center justify-between px-1 shrink-0 relative z-50">
-              <div className="flex items-center gap-3 bg-slate-900/90 backdrop-blur-md px-3.5 py-1.5 rounded-xl border border-slate-800 shadow-lg text-xs">
-                  <span className="text-slate-400 font-bold">分數 <span className="font-mono text-emerald-400 font-bold text-sm ml-1">{score.toLocaleString()}</span></span>
-                  <span className="w-px h-3 bg-slate-700" />
-                  <span className="text-slate-400 font-bold">步數 <span className="font-mono text-blue-400 font-bold text-sm ml-1">{moves}</span></span>
-              </div>
 
-              <button 
-                  onClick={handleExitFullscreen}
-                  className="p-1.5 px-3 rounded-xl bg-slate-900/90 text-slate-200 hover:bg-slate-800 active:scale-95 backdrop-blur-md shadow-xl border border-slate-700 transition flex items-center gap-1.5 text-xs font-bold"
-                  title="退出全螢幕"
-              >
-                  <Minimize2 className="w-4 h-4 text-blue-400" />
-                  <span className="hidden sm:inline">退出</span>
-              </button>
-          </div>
-        )}
-
-        {/* 中央主棋盤區域 */}
-        {/* isolate + z-0：棋盤內所有 z-index（如 Lv 標籤）都被限制在這層，不會蓋過選單 */}
-        <div className="w-full flex items-center justify-center relative z-0 isolate">
-          {assetsReady ? (
-            <GameBoard
-              grid={grid} 
-              swapSignal={swapSignal}
-              swappingPair={swappingPair}
-              isProcessing={isProcessing}
-              onInteraction={handleInteraction}
-              onDiscard={handleDiscard}
-              isFullscreen={isFullscreen}
-              onSound={playSound}
-            />
-          ) : (
-            <div role="status" aria-live="polite" className="flex flex-col items-center gap-4 p-8">
-              <div className="w-20 h-20 animate-pulse"><RuneImage type={RuneType.Lightning} level={5} /></div>
-              <p className="text-sm text-slate-400">載入符文 {assetProgress.loaded + assetProgress.failed}/25</p>
-              <progress aria-label="符文載入進度" max={25} value={assetProgress.loaded + assetProgress.failed} className="w-48" />
+            {/* 底部說明文字 */}
+            <div className="w-full text-center text-[10px] md:text-xs text-slate-400/80 leading-relaxed shrink-0">
+              <p>連線 3 個相同符文進行合成。<br className="sm:hidden" />拖曳至外圍插槽可銷毀符文。</p>
             </div>
-          )}
-        </div>
 
-        {/* 底部說明文字 */}
-        <div className="w-full text-center text-[10px] md:text-xs text-slate-400/80 leading-relaxed shrink-0">
-          <p>連線 3 個相同符文進行合成。<br className="sm:hidden" />拖曳至外圍插槽可銷毀符文。</p>
-        </div>
+          </div>
 
-      </div>
-
-      {/* 下方等比留白：與頂部彈性格嚴格對稱，確保整體絕對垂直置中 */}
-      <div className="w-full flex-1 min-h-[6px]" />
+          {/* 下方等比留白：與頂部彈性格嚴格對稱，確保整體絕對垂直置中 */}
+          <div className="w-full flex-1 min-h-[6px]" />
+        </>
+      )}
 
       {/* Help Modal */}
       <AnimatePresence>
