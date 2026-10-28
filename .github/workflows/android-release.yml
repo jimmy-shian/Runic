@@ -45,7 +45,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
-      - uses: android-actions/setup-android@v3
+      - uses: android-actions/setup-android@v4
         with:
           packages: 'platform-tools'
       - name: Install Android SDK
@@ -86,8 +86,13 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release delete "${GITHUB_REF_NAME}" --yes --cleanup-tag=false 2>/dev/null || true
-          gh release create "${GITHUB_REF_NAME}" releases/* --target "$GITHUB_SHA" --title "Runic ${ANDROID_VERSION_NAME} (${ANDROID_VERSION_CODE})" --generate-notes
+          flags=()
+          if [[ "$GITHUB_REF_NAME" == *-ci-test-* ]]; then flags+=(--prerelease); fi
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" releases/* --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" "${flags[@]}" releases/* --verify-tag --title "Runic ${ANDROID_VERSION_NAME} (${ANDROID_VERSION_CODE})" --generate-notes
+          fi
       - name: Remove signing key
         if: always()
         run: rm -f -- "$ANDROID_KEYSTORE_PATH"

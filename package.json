@@ -10,7 +10,12 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test tests/*.test.ts",
-    "android:release": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-apk.ps1"
+    "android:release": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-apk.ps1",
+    "postinstall": "node tools/ensure-ad-config.cjs",
+    "prebuild": "node tools/ensure-ad-config.cjs",
+    "prebuild:devlocal": "node tools/ensure-ad-config.cjs",
+    "pretypecheck": "node tools/ensure-ad-config.cjs",
+    "predev": "node tools/ensure-ad-config.cjs"
   },
   "dependencies": {
     "@capacitor/android": "^7.6.9",
