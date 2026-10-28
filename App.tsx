@@ -1,3 +1,5 @@
+import { SplashAd } from './components/SplashAd';
+import { EdgeAdBanner } from './components/EdgeAdBanner';
 import React, { useState, useEffect } from 'react';
 import { preloadRuneImages } from './runeAssets';
 import { RuneImage } from './components/RunePiece';
@@ -11,6 +13,7 @@ import { HelpCircle, Move, RotateCcw, Shuffle, Maximize2, Minimize2, Trash2, Bar
 import { AnimatePresence, motion } from 'framer-motion';
 
 const App: React.FC = () => {
+  const [showSplash, setShowSplash] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(() => {
     try { return localStorage.getItem('runic.soundEnabled') !== 'false'; } catch { return true; }
   });
@@ -164,12 +167,14 @@ const App: React.FC = () => {
         paddingRight: isFullscreen ? 'max(6px, env(safe-area-inset-right, 6px))' : 'max(10px, env(safe-area-inset-right, 10px))',
       }}
     >
+      {showSplash && <SplashAd onFinish={() => setShowSplash(false)} />}
       {isLandscape ? (
         /* ========== 橫向模式 (Landscape)：左標題分數 / 中棋盤佔滿 / 右垂直展開按鈕 ========== */
         <div className="h-full w-full flex flex-row items-center justify-between gap-3 sm:gap-4 md:gap-6 px-2 sm:px-4 md:px-6 py-1 overflow-hidden">
           
           {/* 左側：Title + 分數 + 步數 + 說明 */}
           <div className="h-full w-40 sm:w-48 md:w-56 shrink-0 flex flex-col justify-between py-1 md:py-2 z-10 select-none">
+            <EdgeAdBanner position="left" />
             {/* LOGO & Title */}
             <div className="flex items-center gap-2.5">
               <img 
@@ -236,6 +241,7 @@ const App: React.FC = () => {
             className="h-full w-40 sm:w-48 md:w-56 shrink-0 flex flex-col justify-center gap-1.5 sm:gap-2 md:gap-2.5 py-1 md:py-2 z-10 overflow-y-auto custom-scrollbar"
             onClickCapture={() => playSound('click')}
           >
+            <EdgeAdBanner position="right" />
             <button 
               onClick={() => setShowCollection(true)}
               className="w-full py-2 sm:py-2.5 md:py-3 px-2.5 sm:px-3 md:px-4 rounded-2xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 transition flex items-center justify-center gap-2 sm:gap-2.5 active:scale-95 shadow-sm"
@@ -306,6 +312,7 @@ const App: React.FC = () => {
         /* ========== 直向模式 (Portrait)：維持原有的垂直佈局 ========== */
         <>
           {/* 頂部等比留白：與底部彈性格嚴格對稱，確保整體絕對垂直置中 */}
+          <EdgeAdBanner position="top" />
           <div className="w-full flex-1 min-h-[6px]" />
 
           {/* 核心內容舞台（垂直置中核心區塊） */}
@@ -441,6 +448,7 @@ const App: React.FC = () => {
           </div>
 
           {/* 下方等比留白：與頂部彈性格嚴格對稱，確保整體絕對垂直置中 */}
+          <EdgeAdBanner position="bottom" />
           <div className="w-full flex-1 min-h-[6px]" />
         </>
       )}

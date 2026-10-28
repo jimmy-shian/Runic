@@ -1,18 +1,21 @@
 apply plugin: 'com.android.application'
 
 def signingProperties = new Properties()
-def signingFile = rootProject.file('keystore.properties')
+def signingFile = rootProject.file('../../keystores/signing.properties')
 if (signingFile.exists()) signingFile.withInputStream { signingProperties.load(it) }
-def signingValue = { name, env -> System.getenv(env) ?: signingProperties.getProperty(name) }
-def releaseStore = signingValue('storeFile', 'ANDROID_KEYSTORE_PATH')
-def releaseStorePassword = signingValue('storePassword', 'ANDROID_KEYSTORE_PASSWORD')
-def releaseAlias = signingValue('keyAlias', 'ANDROID_KEY_ALIAS')
-def releaseKeyPassword = signingValue('keyPassword', 'ANDROID_KEY_PASSWORD')
-def releaseRequested = gradle.startParameter.taskNames.any { it.toLowerCase().contains('release') }
-if (releaseRequested && (!releaseStore || !releaseStorePassword || !releaseAlias || !releaseKeyPassword)) {
-    throw new GradleException('Release signing is required. Configure android/keystore.properties or ANDROID_KEYSTORE_* environment variables.')
+def signingValue = { name, names -> names.collect { System.getenv(it) }.find { it } ?: signingProperties.getProperty(name) }
+def releaseStore = signingValue('storeFile', ['KEYSTORE_FILE', 'ANDROID_KEYSTORE_PATH', 'REATER_KEYSTORE_FILE'])
+def releaseStorePassword = signingValue('storePassword', ['KEYSTORE_PASSWORD', 'ANDROID_KEYSTORE_PASSWORD', 'REATER_STORE_PASS'])
+def releaseAlias = signingValue('keyAlias', ['KEY_ALIAS', 'ANDROID_KEY_ALIAS', 'REATER_KEY_ALIAS'])
+def releaseKeyPassword = signingValue('keyPassword', ['KEY_PASSWORD', 'ANDROID_KEY_PASSWORD', 'REATER_KEY_PASS'])
+if (gradle.startParameter.taskNames.any { it.toLowerCase().contains('release') } &&
+    (!releaseStore || !releaseStorePassword || !releaseAlias || !releaseKeyPassword)) {
+    throw new GradleException('Release signing requires environment variables or central keystores/signing.properties')
 }
-def requestedCode = System.getenv('ANDROID_VERSION_CODE')
+
+
+def releaseRequested = gradle.startParameter.taskNames.any { it.toLowerCase().contains('release') }
+def requestedCode = System.getenv('ANDROID_VERSION_CODE') ?: '10102'
 if (releaseRequested && (!requestedCode || !(requestedCode ==~ /[1-9][0-9]*/) || requestedCode.toLong() > 2100000000L)) {
     throw new GradleException('Set ANDROID_VERSION_CODE to a positive integer <= 2100000000. Use build-apk.bat for local releases.')
 }
@@ -35,12 +38,10 @@ android {
     }
     signingConfigs {
         release {
-            if (releaseStore) {
-                storeFile file(releaseStore)
-                storePassword releaseStorePassword
-                keyAlias releaseAlias
-                keyPassword releaseKeyPassword
-            }
+            if (releaseStore) storeFile file(releaseStore)
+            storePassword releaseStorePassword
+            keyAlias releaseAlias
+            keyPassword releaseKeyPassword
         }
     }
     buildTypes {
@@ -68,6 +69,7 @@ dependencies {
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
     implementation project(':capacitor-cordova-android-plugins')
+    implementation 'com.google.android.gms:play-services-ads:25.4.0'
 }
 
 apply from: 'capacitor.build.gradle'
