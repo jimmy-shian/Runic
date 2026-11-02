@@ -21,10 +21,10 @@ if (releaseRequested && (!requestedCode || !(requestedCode ==~ /[1-9][0-9]*/) ||
 }
 
 android {
-    namespace "io.github.jimmyshian.runic"
+    namespace "io.github.yesolve.runic"
     compileSdk rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "io.github.jimmyshian.runic"
+        applicationId "io.github.yesolve.runic"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode requestedCode ? requestedCode.toInteger() : 1

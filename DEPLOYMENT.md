@@ -39,7 +39,7 @@ SDK 預設為 `%LOCALAPPDATA%\Android\Sdk`，也可設定 `ANDROID_HOME`。
 
 ## 本地與雲端互相更新
 
-兩邊的 applicationId 固定為 `io.github.jimmyshian.runic`，並使用同一把 release key；後編譯的版本碼高於前一版，可直接覆蓋安裝。
+兩邊的 applicationId 固定為 `io.github.yesolve.runic`，並使用同一把 release key；後編譯的版本碼高於前一版，可直接覆蓋安裝。
 這是下載 APK 後手動覆蓋更新，不包含 App 內自動下載更新。
 若手機現有安裝版使用 debug key 或其他金鑰，Android 不允許用此 release key 直接覆蓋，應先確認既有版本的簽章。
 

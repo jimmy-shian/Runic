@@ -48,7 +48,7 @@ npx cap init
 ```
 
 * App Name: `runic-synthesis`
-* Package ID: `io.github.jimmyshian.runic`
+* Package ID: `io.github.yesolve.runic`
 
 2. Add Android platform:
 

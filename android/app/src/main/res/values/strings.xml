@@ -2,6 +2,9 @@
 <resources>
     <string name="app_name">runic-synthesis</string>
     <string name="title_activity_main">runic-synthesis</string>
-    <string name="package_name">io.github.jimmyshian.runic</string>
-    <string name="custom_url_scheme">io.github.jimmyshian.runic</string>
+    <string name="package_name">io.github.yesolve.runic</string>
+    <string name="custom_url_scheme">io.github.yesolve.runic</string>
+    <string name="admob_app_id">ca-app-pub-2415998114933157~8512620576</string>
+    <string name="admob_unit_splash">ca-app-pub-2415998114933157/1702127655</string>
+    <string name="admob_unit_banner">ca-app-pub-2415998114933157/2368342064</string>
 </resources>

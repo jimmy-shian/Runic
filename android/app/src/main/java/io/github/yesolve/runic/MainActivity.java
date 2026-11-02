@@ -1,4 +1,4 @@
-package io.github.jimmyshian.runic;
+package io.github.yesolve.runic;
 
 import android.os.Bundle;
 import com.getcapacitor.BridgeActivity;

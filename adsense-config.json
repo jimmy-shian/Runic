@@ -1,0 +1,13 @@
+{
+  "client": "ca-pub-2415998114933157",
+  "slots": {
+    "splash": "7830577841",
+    "banner": ""
+  },
+  "slotOptions": {
+    "splash": {
+      "layout": "in-article",
+      "format": "fluid"
+    }
+  }
+}
