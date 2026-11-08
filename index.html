@@ -36,6 +36,25 @@
         background: #64748b;
       }
       .custom-scrollbar { scrollbar-width: thin; scrollbar-color: #475569 #1e293b; }
+      /* ===== 開場封面：跑馬燈（Marquee）動畫 ===== */
+      /* 內容複製兩份後位移 -50%，可無縫循環 */
+      @keyframes runic-marquee-left {
+        from { transform: translate3d(0, 0, 0); }
+        to   { transform: translate3d(-50%, 0, 0); }
+      }
+      @keyframes runic-marquee-right {
+        from { transform: translate3d(-50%, 0, 0); }
+        to   { transform: translate3d(0, 0, 0); }
+      }
+      /* 每步 200ms 閃爍切換時，配隨標題淡入效果 */
+      @keyframes runic-caption-in {
+        from { opacity: 0.25; }
+        to   { opacity: 1; }
+      }
+      .runic-caption { animation: runic-caption-in 0.18s ease-out; }
+      @media (prefers-reduced-motion: reduce) {
+        .runic-marquee-track { animation-play-state: paused !important; }
+      }
     </style>
   <script type="importmap">
 {
