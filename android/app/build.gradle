@@ -15,7 +15,7 @@ if (gradle.startParameter.taskNames.any { it.toLowerCase().contains('release') }
 
 
 def releaseRequested = gradle.startParameter.taskNames.any { it.toLowerCase().contains('release') }
-def requestedCode = System.getenv('ANDROID_VERSION_CODE') ?: '10102'
+def requestedCode = System.getenv('ANDROID_VERSION_CODE') ?: '10103'
 if (releaseRequested && (!requestedCode || !(requestedCode ==~ /[1-9][0-9]*/) || requestedCode.toLong() > 2100000000L)) {
     throw new GradleException('Set ANDROID_VERSION_CODE to a positive integer <= 2100000000. Use build-apk.bat for local releases.')
 }
@@ -28,7 +28,7 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode requestedCode ? requestedCode.toInteger() : 1
-        versionName System.getenv('ANDROID_VERSION_NAME') ?: '1.1.2'
+        versionName System.getenv('ANDROID_VERSION_NAME') ?: '1.1.3'
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
